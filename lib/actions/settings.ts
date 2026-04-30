@@ -1,13 +1,14 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
-import { getSettings, setSettings } from "@/lib/settings-store"
+import { auth } from "@/auth"
+import { getUserSettings, upsertUserSettings } from "@/lib/db/settings"
 import {
   DEFAULT_USER_SETTINGS,
-  type UserSettings,
-  type AgentPersonality,
   type AdviceFrequency,
+  type AgentPersonality,
   type TempUnit,
+  type UserSettings,
 } from "@/lib/types"
 
 const PERSONALITIES: AgentPersonality[] = ["scientist", "friendly", "guru"]
@@ -15,21 +16,19 @@ const FREQUENCIES: AdviceFrequency[] = ["proactive", "manual"]
 const UNITS: TempUnit[] = ["celsius", "fahrenheit"]
 
 /**
- * Persists the user's settings on the simulated server store.
- * The hackathon prototype uses an in-memory store on globalThis so the
- * round-trip behaves like a real backend. Swap `setSettings` for a DB
- * write when Supabase / Neon is wired up — the public action signature
- * stays the same.
+ * Persiste los settings del usuario en Postgres (`user_settings`).
+ * Hace upsert por user_email, así nunca duplica filas.
  */
 export async function saveSettings(
   patch: Partial<UserSettings>,
-  userId: string | null = null,
 ): Promise<{ ok: boolean; settings?: UserSettings; error?: string }> {
-  // Simulate network/DB latency so the spinner is visible in the UI.
-  await new Promise((r) => setTimeout(r, 600))
+  const session = await auth()
+  if (!session?.user?.email) {
+    return { ok: false, error: "Tenés que iniciar sesión." }
+  }
 
   try {
-    const current = getSettings(userId)
+    const current = await getUserSettings(session.user.email)
 
     const profile = {
       name: (patch.profile?.name ?? current.profile.name).trim().slice(0, 60),
@@ -65,7 +64,8 @@ export async function saveSettings(
             patch.location?.alerts?.frost ?? current.location.alerts.frost,
           hail: patch.location?.alerts?.hail ?? current.location.alerts.hail,
           heatwave:
-            patch.location?.alerts?.heatwave ?? current.location.alerts.heatwave,
+            patch.location?.alerts?.heatwave ??
+            current.location.alerts.heatwave,
           wateringReminder:
             patch.location?.alerts?.wateringReminder ??
             current.location.alerts.wateringReminder,
@@ -74,18 +74,25 @@ export async function saveSettings(
       },
     }
 
-    const saved = setSettings(next, userId)
+    const saved = await upsertUserSettings(session.user.email, next)
     revalidatePath("/perfil")
     revalidatePath("/")
     return { ok: true, settings: saved }
   } catch (err) {
+    console.error("[v0] Error guardando settings:", err)
     const message = err instanceof Error ? err.message : "Error desconocido"
     return { ok: false, error: message }
   }
 }
 
-export async function loadSettings(
-  userId: string | null = null,
-): Promise<UserSettings> {
-  return getSettings(userId)
+/**
+ * Carga los settings del usuario logueado. Si no existen aún, devuelve
+ * defaults con el mail prellenado.
+ */
+export async function loadSettings(): Promise<UserSettings> {
+  const session = await auth()
+  if (!session?.user?.email) {
+    return structuredClone(DEFAULT_USER_SETTINGS)
+  }
+  return getUserSettings(session.user.email)
 }

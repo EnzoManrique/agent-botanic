@@ -1,13 +1,14 @@
-import { Snowflake, Sun, Wind, Leaf } from "lucide-react"
+import { Snowflake, Sun, Wind, Leaf, CloudHail } from "lucide-react"
 import type { WeatherAlert } from "@/lib/types"
 import { cn } from "@/lib/utils"
 
-const ICONS = {
+const ICONS: Record<WeatherAlert["type"], React.ElementType> = {
   zonda: Wind,
   frost: Snowflake,
   heatwave: Sun,
+  hail: CloudHail,
   calm: Leaf,
-} as const
+}
 
 const STYLES = {
   high: "bg-accent text-accent-foreground border-accent",

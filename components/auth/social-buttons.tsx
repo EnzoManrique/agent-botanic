@@ -1,10 +1,9 @@
 "use client"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
-import { useAuth } from "@/lib/hooks/use-auth"
+import { getGoogleSignInUrl } from "@/lib/actions/auth"
 import { toast } from "sonner"
 
 function GoogleIcon({ className }: { className?: string }) {
@@ -55,27 +54,39 @@ interface SocialButtonsProps {
 }
 
 export function SocialButtons({ redirectTo = "/" }: SocialButtonsProps) {
-  const router = useRouter()
-  const { loginWithProvider } = useAuth()
-  const [pending, setPending] = useState<"google" | "apple" | null>(null)
+  const [pending, setPending] = useState(false)
 
-  async function handle(provider: "google" | "apple") {
+  async function handleGoogle() {
     if (pending) return
-    setPending(provider)
+    setPending(true)
     try {
-      const u = await loginWithProvider(provider)
-      toast.success(`Listo, ${u.name.split(" ")[0]}`, {
-        description: "Te dejamos en tu jardín.",
-      })
-      router.push(redirectTo)
+      const res = await getGoogleSignInUrl(redirectTo)
+      if (!res.ok) {
+        toast.error(res.error)
+        setPending(false)
+        return
+      }
+      // Navegamos al consent screen de Google. Después de que el usuario
+      // autorice, Google rebota a /api/auth/callback/google y Auth.js termina
+      // dejándolo en `redirectTo`.
+      window.location.href = res.url
     } catch (error) {
-      const message =
+      toast.error(
         error instanceof Error
           ? error.message
-          : "No pudimos completar el ingreso."
-      toast.error(message)
-      setPending(null)
+          : "No pudimos abrir el ingreso con Google.",
+      )
+      setPending(false)
     }
+  }
+
+  function handleApple() {
+    // Apple Sign-In requiere una cuenta de Apple Developer ($99/año) para
+    // generar el client_secret JWT. Lo dejamos visible pero deshabilitado
+    // para que la UI quede completa de cara al demo.
+    toast.info("Apple llega pronto", {
+      description: "Por ahora podés entrar con Google o con tu mail.",
+    })
   }
 
   return (
@@ -84,11 +95,11 @@ export function SocialButtons({ redirectTo = "/" }: SocialButtonsProps) {
         type="button"
         variant="outline"
         size="lg"
-        onClick={() => handle("google")}
-        disabled={pending !== null}
+        onClick={handleGoogle}
+        disabled={pending}
         className="border-border bg-card hover:bg-secondary/60 h-12 w-full justify-center gap-3 rounded-2xl border-2 text-sm font-semibold shadow-soft"
       >
-        {pending === "google" ? (
+        {pending ? (
           <Spinner className="size-4" />
         ) : (
           <GoogleIcon className="size-5" />
@@ -99,16 +110,17 @@ export function SocialButtons({ redirectTo = "/" }: SocialButtonsProps) {
         type="button"
         variant="outline"
         size="lg"
-        onClick={() => handle("apple")}
-        disabled={pending !== null}
-        className="border-border bg-foreground text-background hover:bg-foreground/90 h-12 w-full justify-center gap-3 rounded-2xl border-2 text-sm font-semibold shadow-soft"
+        onClick={handleApple}
+        disabled={pending}
+        aria-label="Continuar con Apple (próximamente)"
+        title="Próximamente"
+        className="border-border bg-foreground/90 text-background hover:bg-foreground relative h-12 w-full justify-center gap-3 rounded-2xl border-2 text-sm font-semibold shadow-soft"
       >
-        {pending === "apple" ? (
-          <Spinner className="size-4" />
-        ) : (
-          <AppleIcon className="size-5" />
-        )}
+        <AppleIcon className="size-5" />
         Continuar con Apple
+        <span className="bg-background/15 absolute right-3 rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wide uppercase">
+          Pronto
+        </span>
       </Button>
     </div>
   )

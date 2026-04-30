@@ -2,21 +2,47 @@
 
 import Link from "next/link"
 import Image from "next/image"
-import { Droplets, Leaf, Sparkles, ArrowRight, Camera, Settings } from "lucide-react"
+import {
+  Droplets,
+  Leaf,
+  Sparkles,
+  ArrowRight,
+  Camera,
+  Settings,
+  Snowflake,
+  Sun,
+  Wind,
+  CloudHail,
+  AlertTriangle,
+} from "lucide-react"
 import { usePlantManager } from "@/lib/hooks/use-plant-manager"
 import { WeatherBanner } from "./weather-banner"
 import { ScreenHeader } from "@/components/mobile/screen-header"
 import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
-import type { Plant, WeatherAlert } from "@/lib/types"
+import { ALL_LOCATIONS, LOCATION_META } from "@/lib/plant-meta"
+import type { Plant, PlantLocation, WeatherAlert } from "@/lib/types"
+import type { ProactiveAdvice } from "@/lib/proactive-advisor"
 import { cn } from "@/lib/utils"
+
+const SECONDARY_ALERT_ICONS: Record<WeatherAlert["type"], React.ElementType> = {
+  zonda: Wind,
+  frost: Snowflake,
+  heatwave: Sun,
+  hail: CloudHail,
+  calm: Leaf,
+}
 
 export function HomeView({
   initialPlants,
   weather,
+  extraAlerts = [],
+  advice = null,
 }: {
   initialPlants: Plant[]
   weather: WeatherAlert
+  extraAlerts?: WeatherAlert[]
+  advice?: ProactiveAdvice | null
 }) {
   const { plants, needsWatering, waterPlant, isPending } =
     usePlantManager(initialPlants)
@@ -40,6 +66,12 @@ export function HomeView({
 
       <WeatherBanner alert={weather} />
 
+      {extraAlerts.length > 0 ? (
+        <ExtraAlertsList alerts={extraAlerts} />
+      ) : null}
+
+      {advice ? <ProactiveAdviceCard advice={advice} /> : null}
+
       <section className="grid grid-cols-2 gap-3 px-5">
         <StatCard
           icon={<Leaf className="size-5" aria-hidden="true" />}
@@ -55,6 +87,8 @@ export function HomeView({
           accent
         />
       </section>
+
+      {plants.length > 0 ? <LocationSummary plants={plants} /> : null}
 
       <section className="flex flex-col gap-3 px-5">
         <div className="flex items-end justify-between">
@@ -128,6 +162,103 @@ export function HomeView({
   )
 }
 
+/**
+ * Lista compacta de alertas secundarias bajo el banner principal.
+ * Si en el día hay Zonda + helada, queremos mostrar ambas pero sin que la
+ * pantalla se sienta saturada.
+ */
+function ExtraAlertsList({ alerts }: { alerts: WeatherAlert[] }) {
+  return (
+    <section className="px-5">
+      <p className="mb-2 text-xs font-semibold tracking-wide uppercase text-muted-foreground">
+        Otras alertas activas
+      </p>
+      <ul className="flex flex-col gap-2">
+        {alerts.map((a, i) => {
+          const Icon = SECONDARY_ALERT_ICONS[a.type] ?? AlertTriangle
+          return (
+            <li
+              key={`${a.type}-${i}`}
+              className="flex items-start gap-3 rounded-2xl border-2 border-border bg-card p-3 shadow-soft"
+            >
+              <span
+                aria-hidden="true"
+                className={cn(
+                  "flex size-9 shrink-0 items-center justify-center rounded-xl",
+                  a.severity === "high"
+                    ? "bg-accent text-accent-foreground"
+                    : "bg-secondary text-secondary-foreground",
+                )}
+              >
+                <Icon className="size-4" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold leading-tight">
+                  {a.title}
+                </p>
+                <p className="text-xs text-muted-foreground text-pretty">
+                  {a.description}
+                </p>
+              </div>
+            </li>
+          )
+        })}
+      </ul>
+    </section>
+  )
+}
+
+/**
+ * Card del "agente proactivo": cuando la alerta climática cruzada con el
+ * jardín del usuario amerita un aviso personalizado, lo mostramos acá con
+ * un CTA para llevar la conversación al chat del agente.
+ */
+function ProactiveAdviceCard({ advice }: { advice: ProactiveAdvice }) {
+  const isHigh = advice.severity === "high"
+  return (
+    <section className="px-5">
+      <article
+        className={cn(
+          "flex flex-col gap-3 rounded-3xl border-2 p-4 shadow-soft",
+          isHigh
+            ? "bg-accent/15 border-accent/50"
+            : "bg-primary/5 border-primary/30",
+        )}
+      >
+        <header className="flex items-start gap-3">
+          <span
+            aria-hidden="true"
+            className={cn(
+              "flex size-11 shrink-0 items-center justify-center rounded-2xl border-2",
+              isHigh
+                ? "border-accent/50 bg-accent text-accent-foreground"
+                : "border-primary/30 bg-primary text-primary-foreground",
+            )}
+          >
+            <Sparkles className="size-5" />
+          </span>
+          <div className="flex-1">
+            <p className="text-xs font-semibold tracking-wide uppercase text-muted-foreground">
+              El agente sugiere
+            </p>
+            <p className="font-serif text-base leading-tight font-semibold text-balance">
+              {advice.headline}
+            </p>
+          </div>
+        </header>
+        <p className="text-sm leading-relaxed text-pretty">{advice.message}</p>
+        <Link
+          href={`/agente?prompt=${encodeURIComponent(advice.chatPrompt)}`}
+          className="bg-card hover:bg-secondary/60 inline-flex items-center justify-center gap-2 rounded-2xl border-2 border-border px-4 py-2.5 text-sm font-semibold transition-colors"
+        >
+          <Sparkles className="size-4" aria-hidden="true" />
+          Hablarlo con el agente
+        </Link>
+      </article>
+    </section>
+  )
+}
+
 function WaterRow({
   plant,
   onWater,
@@ -194,6 +325,82 @@ function WaterRow({
         Regar
       </Button>
     </li>
+  )
+}
+
+/**
+ * Lista compacta que muestra dónde está físicamente cada planta del usuario.
+ * Solo aparecen las ubicaciones que tienen al menos una planta para no
+ * llenar la pantalla con tarjetas vacías.
+ */
+function LocationSummary({ plants }: { plants: Plant[] }) {
+  // Agrupamos por location en una sola pasada — más prolijo que filtrar
+  // 4 veces el array.
+  const grouped = plants.reduce<Record<PlantLocation, Plant[]>>(
+    (acc, plant) => {
+      ;(acc[plant.location] ??= []).push(plant)
+      return acc
+    },
+    {} as Record<PlantLocation, Plant[]>,
+  )
+
+  // Mantenemos el orden canónico definido en plant-meta para que el layout
+  // se sienta estable cuando el usuario suma o mueve plantas.
+  const visibleLocations = ALL_LOCATIONS.filter(
+    (loc) => grouped[loc] && grouped[loc].length > 0,
+  )
+
+  return (
+    <section className="flex flex-col gap-3 px-5">
+      <div className="flex items-end justify-between">
+        <div>
+          <h2 className="font-serif text-xl leading-tight font-semibold">
+            Dónde están tus plantas
+          </h2>
+          <p className="text-xs text-muted-foreground">
+            Útil cuando hay alerta de viento o granizo.
+          </p>
+        </div>
+      </div>
+      <ul className="flex flex-col gap-2">
+        {visibleLocations.map((loc) => {
+          const meta = LOCATION_META[loc]
+          const Icon = meta.icon
+          const list = grouped[loc]
+          const aliases = list.map((p) => p.alias).join(", ")
+          return (
+            <li
+              key={loc}
+              className="flex items-start gap-3 rounded-3xl border-2 border-border bg-card p-3 shadow-soft"
+            >
+              <span
+                aria-hidden="true"
+                className={cn(
+                  "flex size-10 shrink-0 items-center justify-center rounded-2xl",
+                  meta.isExposed
+                    ? "bg-accent/20 text-accent"
+                    : "bg-primary/10 text-primary",
+                )}
+              >
+                <Icon className="size-5" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-baseline justify-between gap-2">
+                  <p className="font-semibold leading-tight">{meta.label}</p>
+                  <span className="text-xs font-semibold tabular-nums text-muted-foreground">
+                    {list.length}{" "}
+                    {list.length === 1 ? "planta" : "plantas"}
+                  </span>
+                </div>
+                <p className="mt-0.5 text-sm leading-snug text-muted-foreground text-pretty">
+                  {aliases}
+                </p>
+              </div>
+            </li>
+          )
+        })}
+      </ul>
+    </section>
   )
 }
 

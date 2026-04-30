@@ -2,8 +2,20 @@
 
 import { useCallback, useMemo, useState, useTransition } from "react"
 import { toast } from "sonner"
-import { registerPlantAction, waterPlantAction } from "@/lib/actions/plants"
-import type { Plant, PlantCategory, PlantIdentification } from "@/lib/types"
+import {
+  deletePlantAction,
+  registerPlantAction,
+  updatePlantDetails as updatePlantDetailsAction,
+  waterPlantAction,
+  type PlantDetailsPatch,
+} from "@/lib/actions/plants"
+import { ALL_CATEGORIES, WATERING_MODE_META } from "@/lib/plant-meta"
+import type {
+  Plant,
+  PlantCategory,
+  PlantIdentification,
+  PlantLocation,
+} from "@/lib/types"
 
 export function usePlantManager(initialPlants: Plant[]) {
   const [plants, setPlants] = useState<Plant[]>(initialPlants)
@@ -14,22 +26,34 @@ export function usePlantManager(initialPlants: Plant[]) {
       const res = await waterPlantAction(id)
       if (res.ok && res.plant) {
         setPlants((prev) => prev.map((p) => (p.id === id ? res.plant! : p)))
-        toast.success(`Regaste a ${res.plant.alias}`, {
-          description: "Riego registrado en el historial.",
+        const mode = WATERING_MODE_META[res.plant.wateringMode]
+        toast.success(`${mode.actionPast} ${res.plant.alias}`, {
+          description: "Acción de cuidado registrada en el historial.",
         })
       } else {
-        toast.error("No pude registrar el riego")
+        toast.error("No pude registrar la acción de cuidado")
       }
     })
   }, [])
 
   const registerPlant = useCallback(
-    async (alias: string, identification: PlantIdentification, imageUrl?: string) => {
-      const res = await registerPlantAction({ alias, identification, imageUrl })
+    async (
+      alias: string,
+      identification: PlantIdentification,
+      imageUrl?: string,
+      location?: PlantLocation,
+    ) => {
+      const res = await registerPlantAction({
+        alias,
+        identification,
+        imageUrl,
+        location,
+      })
       if (res.ok) {
         setPlants((prev) => [res.plant, ...prev])
+        const mode = WATERING_MODE_META[res.plant.wateringMode]
         toast.success(`${res.plant.alias} se sumó a tu jardín`, {
-          description: `${res.plant.species} • Riego cada ${res.plant.wateringFrequencyDays} días`,
+          description: `${res.plant.species} • ${mode.actionVerb} cada ${res.plant.wateringFrequencyDays} días`,
         })
       }
       return res
@@ -37,14 +61,57 @@ export function usePlantManager(initialPlants: Plant[]) {
     [],
   )
 
+  /** Edita una planta existente y refleja el resultado en el state local. */
+  const editPlant = useCallback(
+    async (
+      id: string,
+      patch: PlantDetailsPatch,
+    ): Promise<{ ok: boolean; error?: string }> => {
+      const res = await updatePlantDetailsAction(id, patch)
+      if (res.ok && res.plant) {
+        setPlants((prev) => prev.map((p) => (p.id === id ? res.plant! : p)))
+        toast.success("Cambios guardados", {
+          description: `${res.plant.alias} se actualizó correctamente.`,
+        })
+        return { ok: true }
+      }
+      toast.error(res.error ?? "No pude guardar los cambios")
+      return { ok: false, error: res.error }
+    },
+    [],
+  )
+
+  /** Borra una planta. Optimista: la sacamos del state apenas confirma el server. */
+  const removePlant = useCallback(
+    async (id: string): Promise<{ ok: boolean; error?: string }> => {
+      const target = plants.find((p) => p.id === id)
+      const res = await deletePlantAction(id)
+      if (res.ok) {
+        setPlants((prev) => prev.filter((p) => p.id !== id))
+        toast.success(
+          target ? `Eliminaste a ${target.alias}` : "Planta eliminada",
+          { description: "Se borró del jardín y de tu historial." },
+        )
+        return { ok: true }
+      }
+      toast.error(res.error ?? "No pude borrar la planta")
+      return { ok: false, error: res.error }
+    },
+    [plants],
+  )
+
   const groupedByCategory = useMemo(() => {
-    const groups: Record<PlantCategory, Plant[]> = {
-      interior: [],
-      exterior: [],
-      suculenta: [],
-      comestible: [],
+    const groups = ALL_CATEGORIES.reduce(
+      (acc, cat) => {
+        acc[cat] = []
+        return acc
+      },
+      {} as Record<PlantCategory, Plant[]>,
+    )
+    for (const p of plants) {
+      const cat = (groups[p.category] ? p.category : "interior") as PlantCategory
+      groups[cat].push(p)
     }
-    for (const p of plants) groups[p.category].push(p)
     return groups
   }, [plants])
 
@@ -62,6 +129,8 @@ export function usePlantManager(initialPlants: Plant[]) {
     needsWatering,
     waterPlant,
     registerPlant,
+    editPlant,
+    removePlant,
     isPending,
   }
 }

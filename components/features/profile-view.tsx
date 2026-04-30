@@ -1,7 +1,8 @@
 "use client"
 
 import { useEffect, useMemo, useState, useTransition } from "react"
-import { Check, Settings } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { ArrowLeft, Check } from "lucide-react"
 import { toast } from "sonner"
 import { ScreenHeader } from "@/components/mobile/screen-header"
 import { Button } from "@/components/ui/button"
@@ -15,24 +16,6 @@ import { AgentSettingsCard } from "./profile/agent-settings-card"
 import { WeatherLocationCard } from "./profile/weather-location-card"
 import { AccountActions } from "./profile/account-actions"
 
-const STORAGE_KEY = "sb_user_settings"
-
-function loadFromStorage(): UserSettings | null {
-  if (typeof window === "undefined") return null
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY)
-    if (!raw) return null
-    return JSON.parse(raw) as UserSettings
-  } catch {
-    return null
-  }
-}
-
-function saveToStorage(s: UserSettings) {
-  if (typeof window === "undefined") return
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(s))
-}
-
 function isValidEmail(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())
 }
@@ -43,24 +26,36 @@ export function ProfileView({
   initialSettings: UserSettings
 }) {
   const { user } = useAuth()
+  const router = useRouter()
   const [settings, setSettings] = useState<UserSettings>(initialSettings)
   const [pristine, setPristine] = useState<UserSettings>(initialSettings)
   const [isPending, startTransition] = useTransition()
 
-  // Hydrate name/email/locally-cached settings once we know the user.
-  useEffect(() => {
-    const stored = loadFromStorage()
-    const next: UserSettings = stored ?? initialSettings
-    if (user && (!next.profile.name || !next.profile.email)) {
-      next.profile = {
-        name: next.profile.name || user.name,
-        email: next.profile.email || user.email,
-      }
+  function handleBack() {
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      router.back()
+    } else {
+      router.push("/")
     }
-    setSettings(next)
-    setPristine(next)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id])
+  }
+
+  // Si el server devolvió defaults vacíos y ya tenemos sesión, prellenamos
+  // nombre y mail del usuario logueado para que el form arranque útil.
+  useEffect(() => {
+    if (!user) return
+    setSettings((prev) => {
+      if (prev.profile.name && prev.profile.email) return prev
+      const next: UserSettings = {
+        ...prev,
+        profile: {
+          name: prev.profile.name || user.name,
+          email: prev.profile.email || user.email,
+        },
+      }
+      setPristine(next)
+      return next
+    })
+  }, [user])
 
   const dirty = useMemo(
     () => JSON.stringify(settings) !== JSON.stringify(pristine),
@@ -78,12 +73,11 @@ export function ProfileView({
       return
     }
     startTransition(async () => {
-      const result = await saveSettings(settings, user?.id ?? null)
+      const result = await saveSettings(settings)
       if (!result.ok || !result.settings) {
         toast.error(result.error ?? "No pude guardar los cambios.")
         return
       }
-      saveToStorage(result.settings)
       setSettings(result.settings)
       setPristine(result.settings)
       toast.success("Listo, guardamos tus ajustes en el invernadero.")
@@ -100,7 +94,9 @@ export function ProfileView({
         eyebrow="Configuración"
         title="Ajustes de perfil"
         subtitle="Personalizá tu experiencia de jardinería."
-        icon={<Settings className="size-5" aria-hidden="true" />}
+        icon={<ArrowLeft className="size-5" aria-hidden="true" />}
+        onIconClick={handleBack}
+        iconLabel="Volver"
       />
 
       <ProfileHeaderCard
@@ -153,5 +149,3 @@ export function ProfileView({
     </div>
   )
 }
-
-
