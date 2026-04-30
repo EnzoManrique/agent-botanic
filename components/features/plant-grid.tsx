@@ -45,8 +45,10 @@ export function PlantGrid({
           return `Sin plantas en ${meta.label.toLowerCase()}. ${meta.description} Escaneá una para empezar.`
         })()
 
+  // pt-[148px] compensa el navbar fijo de arriba: header (icono + título)
+  // + chips de categoría. Si el navbar crece, ajustar acá también.
   return (
-    <div className="px-5 pb-2 pt-[75px]">
+    <div className="px-5 pb-2 pt-[148px]">
       {visiblePlants.length === 0 ? (
         <Empty className="rounded-3xl border-2 border-dashed border-border bg-card/50 py-12">
           <EmptyHeader>

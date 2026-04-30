@@ -44,7 +44,11 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  themeColor: "#3a6b4a",
+  // Cream del header para que el status bar del notch en iOS se funda
+  // con la barra superior de la app (no se ve un "corte" verde encima).
+  // iOS Safari calcula automáticamente el color del texto del status bar
+  // según el contraste, así que con cream queda con texto oscuro legible.
+  themeColor: "#f5efe0",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
