@@ -3,14 +3,26 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Home, Sprout, Camera, Sparkles } from "lucide-react"
+import type { LucideIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-const TABS = [
+// Tipamos explícitamente el array para que `accent` sea un campo opcional
+// uniforme en todos los tabs. Sin esto, TS infería tipos distintos por
+// elemento (sólo "Escanear" tenía `accent`) y romper en el `tab.accent`.
+interface TabConfig {
+  href: string
+  label: string
+  icon: LucideIcon
+  /** Si es true, el tab se renderiza con el estilo "Escanear" destacado. */
+  accent?: boolean
+}
+
+const TABS: TabConfig[] = [
   { href: "/", label: "Inicio", icon: Home },
   { href: "/jardin", label: "Jardín", icon: Sprout },
   { href: "/escanear", label: "Escanear", icon: Camera, accent: true },
   { href: "/agente", label: "Agente", icon: Sparkles },
-] as const
+]
 
 export function BottomTabs() {
   const pathname = usePathname()
