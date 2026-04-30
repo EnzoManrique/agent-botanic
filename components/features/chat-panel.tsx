@@ -6,12 +6,19 @@ import { useChat } from "@ai-sdk/react"
 import { DefaultChatTransport } from "ai"
 import {
   Bot,
+  Cloud,
+  CloudHail,
   ImagePlus,
+  Leaf,
+  Scan,
   Send,
+  ShoppingBag,
   Sparkles,
+  Sprout,
   User,
   Wrench,
   X,
+  type LucideIcon,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -27,11 +34,51 @@ import {
   type AgentProduct,
 } from "./agent-product-carousel"
 
-const SUGGESTIONS = [
-  "¿Conviene regar hoy en Mendoza?",
-  "Resumime el estado de mis plantas",
-  "Buscame fertilizante para potus barato",
-  "Adjuntame foto de hoja con manchitas",
+/** Sugerencias del empty state. Cada una representa una capacidad distinta
+ *  del agente para que el usuario descubra todo lo que puede pedirle:
+ *  clima, estado del jardín, alertas, productos, diagnóstico por foto y
+ *  consejos generales de cuidado. Si agregamos una herramienta nueva al
+ *  agente, sumá un chip acá para que sea descubrible. */
+type Suggestion = {
+  icon: LucideIcon
+  label: string
+  /** Texto que se manda al modelo cuando el usuario toca el chip. */
+  prompt: string
+}
+
+const SUGGESTIONS: Suggestion[] = [
+  {
+    icon: Cloud,
+    label: "¿Conviene regar hoy?",
+    prompt: "¿Conviene regar hoy según el clima de mi ciudad?",
+  },
+  {
+    icon: Sprout,
+    label: "¿Cómo está mi jardín?",
+    prompt: "Resumime el estado de mis plantas y qué necesita atención.",
+  },
+  {
+    icon: Scan,
+    label: "Diagnosticar por foto",
+    prompt:
+      "Te voy a adjuntar una foto de una hoja con manchas — decime qué tiene y cómo lo soluciono.",
+  },
+  {
+    icon: ShoppingBag,
+    label: "Buscar fertilizante",
+    prompt: "Buscame opciones de fertilizante para potus en Mercado Libre.",
+  },
+  {
+    icon: CloudHail,
+    label: "¿Hay alerta esta semana?",
+    prompt: "¿Hay riesgo de granizo, helada o viento fuerte esta semana?",
+  },
+  {
+    icon: Leaf,
+    label: "Consejos de cuidado",
+    prompt:
+      "¿Cómo cuido una suculenta en interior durante el invierno mendocino?",
+  },
 ]
 
 /**
@@ -147,22 +194,34 @@ export function ChatPanel({ initialPrompt }: { initialPrompt?: string }) {
                   Hola, ¿en qué te ayudo?
                 </p>
                 <p className="mt-1 text-sm text-muted-foreground text-pretty">
-                  Reviso el clima, sugiero riegos y diagnostico problemas
-                  desde una foto.
+                  Reviso el clima, cuido tu jardín, busco productos y
+                  diagnostico problemas desde una foto.
                 </p>
               </div>
-              <div className="flex flex-col items-center gap-2 pt-2">
-                {SUGGESTIONS.map((s) => (
-                  <button
-                    key={s}
-                    type="button"
-                    onClick={() => handleSuggestion(s)}
-                    className="w-full max-w-xs rounded-2xl border-2 border-border bg-card px-4 py-3 text-center text-sm font-medium shadow-soft transition-colors hover:border-primary/40 hover:bg-secondary/50 active:scale-[0.99]"
-                  >
-                    {s}
-                  </button>
+              {/* Grid de capacidades. En mobile mostramos 1 columna a ancho
+                  completo; en pantallas un poco más anchas pasamos a 2
+                  columnas para que se vea todo el alcance del agente sin
+                  scrollear. Cada chip lleva su ícono propio para que la
+                  capacidad sea reconocible de un vistazo. */}
+              <ul className="grid grid-cols-1 gap-2 pt-2 sm:grid-cols-2">
+                {SUGGESTIONS.map(({ icon: Icon, label, prompt }) => (
+                  <li key={label} className="contents">
+                    <button
+                      type="button"
+                      onClick={() => handleSuggestion(prompt)}
+                      className="flex w-full items-center gap-3 rounded-2xl border-2 border-border bg-card px-3.5 py-3 text-left text-sm font-medium shadow-soft transition-colors hover:border-primary/40 hover:bg-secondary/50 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                    >
+                      <span
+                        aria-hidden="true"
+                        className="bg-primary/10 text-primary flex size-8 shrink-0 items-center justify-center rounded-xl"
+                      >
+                        <Icon className="size-4" />
+                      </span>
+                      <span className="text-pretty leading-snug">{label}</span>
+                    </button>
+                  </li>
                 ))}
-              </div>
+              </ul>
             </div>
           ) : null}
 
