@@ -1,9 +1,10 @@
 "use client"
 
 import Image from "next/image"
-import { Droplets, Sun, CloudSun, Moon } from "lucide-react"
+import { Sun, CloudSun, Moon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
+import { WATERING_MODE_META } from "@/lib/plant-meta"
 import type { Plant } from "@/lib/types"
 import { cn } from "@/lib/utils"
 
@@ -36,12 +37,14 @@ export function PlantCard({
   const days = daysSince(plant.lastWateredAt)
   const needsWater = days === null || days >= plant.wateringFrequencyDays
   const LightIcon = LIGHT_ICONS[plant.lightNeeds]
+  const careMeta = WATERING_MODE_META[plant.wateringMode]
+  const CareIcon = careMeta.icon
 
   const wateringStatus =
     days === null
-      ? "Sin regar todavía"
+      ? "Sin cuidado todavía"
       : days === 0
-        ? "Regada hoy"
+        ? "Cuidada hoy"
         : days === 1
           ? "Hace 1 día"
           : `Hace ${days} días`
@@ -63,8 +66,8 @@ export function PlantCard({
         />
         {needsWater ? (
           <span className="absolute top-3 left-3 inline-flex items-center gap-1 rounded-full bg-accent px-3 py-1 text-xs font-semibold text-accent-foreground shadow-soft">
-            <Droplets className="size-3.5" aria-hidden="true" />
-            ¡Toca regar!
+            <CareIcon className="size-3.5" aria-hidden="true" />
+            {plant.wateringMode === "soil" ? "¡Toca regar!" : `¡${careMeta.actionVerb}!`}
           </span>
         ) : null}
         <span className="absolute right-3 bottom-3 inline-flex items-center gap-1.5 rounded-full bg-card/95 px-3 py-1 text-xs font-medium text-card-foreground shadow-soft">
@@ -85,11 +88,13 @@ export function PlantCard({
 
         <dl className="grid grid-cols-2 gap-2 text-xs">
           <div className="rounded-xl bg-secondary/70 px-3 py-2">
-            <dt className="text-muted-foreground">Último riego</dt>
+            <dt className="text-muted-foreground">
+              {plant.wateringMode === "soil" ? "Último riego" : "Último cuidado"}
+            </dt>
             <dd className="mt-0.5 font-semibold">{wateringStatus}</dd>
           </div>
           <div className="rounded-xl bg-secondary/70 px-3 py-2">
-            <dt className="text-muted-foreground">Frecuencia</dt>
+            <dt className="text-muted-foreground">{careMeta.actionVerb}</dt>
             <dd className="mt-0.5 font-semibold">cada {plant.wateringFrequencyDays} d</dd>
           </div>
         </dl>
@@ -99,7 +104,7 @@ export function PlantCard({
           disabled={isPending}
           variant={needsWater ? "default" : "secondary"}
           className="mt-auto rounded-2xl font-semibold"
-          aria-label={`Regar a ${plant.alias}`}
+          aria-label={`${careMeta.actionVerb} ${plant.alias}`}
         >
           {isPending ? (
             <>
@@ -108,8 +113,8 @@ export function PlantCard({
             </>
           ) : (
             <>
-              <Droplets className="size-4" aria-hidden="true" />
-              Regar
+              <CareIcon className="size-4" aria-hidden="true" />
+              {careMeta.actionVerb}
             </>
           )}
         </Button>

@@ -1,6 +1,6 @@
 import "server-only"
 import { sql } from "@/lib/db"
-import type { Plant, PlantCategory } from "@/lib/types"
+import type { Plant, PlantCategory, WateringMode } from "@/lib/types"
 
 /**
  * Capa de datos para la tabla `plants`.
@@ -15,6 +15,7 @@ type PlantRow = {
   species: string
   scientific_name: string | null
   watering_frequency_days: number
+  watering_mode: string | null
   category: string
   light_needs: string | null
   notes: string | null
@@ -28,9 +29,18 @@ const VALID_CATEGORIES: PlantCategory[] = [
   "exterior",
   "suculenta",
   "comestible",
+  "floracion",
+  "tropical",
+  "trepadora",
+  "arbol",
+  "acuatica",
+  "hidroponia",
+  "epifita",
+  "bonsai",
 ]
 
 const VALID_LIGHT: Plant["lightNeeds"][] = ["alta", "media", "baja"]
+const VALID_MODES: WateringMode[] = ["soil", "water", "hydroponic", "mist"]
 
 function toMillis(value: Date | string | null): number | null {
   if (value === null) return null
@@ -45,6 +55,9 @@ function rowToPlant(row: PlantRow): Plant {
   const lightNeeds = VALID_LIGHT.includes(row.light_needs as Plant["lightNeeds"])
     ? (row.light_needs as Plant["lightNeeds"])
     : "media"
+  const wateringMode = VALID_MODES.includes(row.watering_mode as WateringMode)
+    ? (row.watering_mode as WateringMode)
+    : "soil"
   return {
     id: String(row.id),
     alias: row.nickname,
@@ -53,6 +66,7 @@ function rowToPlant(row: PlantRow): Plant {
     category,
     imageUrl: row.image_url ?? "/plants/monstera.jpg",
     wateringFrequencyDays: row.watering_frequency_days,
+    wateringMode,
     lightNeeds,
     createdAt: toMillis(row.created_at) ?? Date.now(),
     lastWateredAt: toMillis(row.last_watered_at),
@@ -64,7 +78,7 @@ function rowToPlant(row: PlantRow): Plant {
 export async function getAllPlants(userEmail: string): Promise<Plant[]> {
   const rows = (await sql`
     SELECT id, user_email, nickname, species, scientific_name,
-           watering_frequency_days, category, light_needs, notes,
+           watering_frequency_days, watering_mode, category, light_needs, notes,
            image_url, created_at, last_watered_at
     FROM plants
     WHERE user_email = ${userEmail}
@@ -82,7 +96,7 @@ export async function getPlantById(
   if (!Number.isInteger(numericId)) return undefined
   const rows = (await sql`
     SELECT id, user_email, nickname, species, scientific_name,
-           watering_frequency_days, category, light_needs, notes,
+           watering_frequency_days, watering_mode, category, light_needs, notes,
            image_url, created_at, last_watered_at
     FROM plants
     WHERE id = ${numericId} AND user_email = ${userEmail}
@@ -97,6 +111,7 @@ export interface CreatePlantInput {
   scientificName: string
   category: PlantCategory
   wateringFrequencyDays: number
+  wateringMode: WateringMode
   lightNeeds: Plant["lightNeeds"]
   imageUrl?: string
   notes?: string
@@ -109,20 +124,21 @@ export async function createPlant(
   const rows = (await sql`
     INSERT INTO plants (
       user_email, nickname, species, scientific_name,
-      watering_frequency_days, category, light_needs, notes, image_url
+      watering_frequency_days, watering_mode, category, light_needs, notes, image_url
     ) VALUES (
       ${userEmail},
       ${input.alias},
       ${input.species},
       ${input.scientificName},
       ${input.wateringFrequencyDays},
+      ${input.wateringMode},
       ${input.category},
       ${input.lightNeeds},
       ${input.notes ?? null},
       ${input.imageUrl ?? null}
     )
     RETURNING id, user_email, nickname, species, scientific_name,
-              watering_frequency_days, category, light_needs, notes,
+              watering_frequency_days, watering_mode, category, light_needs, notes,
               image_url, created_at, last_watered_at
   `) as PlantRow[]
   return rowToPlant(rows[0])
@@ -134,6 +150,7 @@ export interface UpdatePlantPatch {
   scientificName?: string
   category?: PlantCategory
   wateringFrequencyDays?: number
+  wateringMode?: WateringMode
   lightNeeds?: Plant["lightNeeds"]
   notes?: string
   imageUrl?: string
@@ -158,12 +175,13 @@ export async function updatePlantDetails(
         scientific_name = COALESCE(${patch.scientificName ?? null}, scientific_name),
         category = COALESCE(${patch.category ?? null}, category),
         watering_frequency_days = COALESCE(${patch.wateringFrequencyDays ?? null}, watering_frequency_days),
+        watering_mode = COALESCE(${patch.wateringMode ?? null}, watering_mode),
         light_needs = COALESCE(${patch.lightNeeds ?? null}, light_needs),
         notes = COALESCE(${patch.notes ?? null}, notes),
         image_url = COALESCE(${patch.imageUrl ?? null}, image_url)
     WHERE id = ${numericId} AND user_email = ${userEmail}
     RETURNING id, user_email, nickname, species, scientific_name,
-              watering_frequency_days, category, light_needs, notes,
+              watering_frequency_days, watering_mode, category, light_needs, notes,
               image_url, created_at, last_watered_at
   `) as PlantRow[]
   return rows[0] ? rowToPlant(rows[0]) : undefined
@@ -181,7 +199,7 @@ export async function markWatered(
     SET last_watered_at = CURRENT_TIMESTAMP
     WHERE id = ${numericId} AND user_email = ${userEmail}
     RETURNING id, user_email, nickname, species, scientific_name,
-              watering_frequency_days, category, light_needs, notes,
+              watering_frequency_days, watering_mode, category, light_needs, notes,
               image_url, created_at, last_watered_at
   `) as PlantRow[]
   return rows[0] ? rowToPlant(rows[0]) : undefined

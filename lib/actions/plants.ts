@@ -12,7 +12,12 @@ import {
 } from "@/lib/db/plants"
 import { addCareLog } from "@/lib/db/care-logs"
 import { sql } from "@/lib/db"
-import type { Plant, PlantCategory, PlantIdentification } from "@/lib/types"
+import type {
+  Plant,
+  PlantCategory,
+  PlantIdentification,
+  WateringMode,
+} from "@/lib/types"
 
 /* -------------------------------------------------------------------------- */
 /* savePlant — insert simple usado desde el front si quieren registrar manual  */
@@ -77,6 +82,7 @@ export interface PlantDetailsPatch {
   scientificName?: string
   category?: PlantCategory
   wateringFrequencyDays?: number
+  wateringMode?: WateringMode
   lightNeeds?: "alta" | "media" | "baja"
   notes?: string
 }
@@ -102,6 +108,7 @@ export async function updatePlantDetails(
     scientificName: patch.scientificName?.trim() || undefined,
     category: patch.category,
     wateringFrequencyDays: cleanWatering,
+    wateringMode: patch.wateringMode,
     lightNeeds: patch.lightNeeds,
     notes: patch.notes,
   })
@@ -171,6 +178,7 @@ export async function registerPlantAction(input: {
       scientificName: input.identification.scientificName,
       category: input.identification.category,
       wateringFrequencyDays: input.identification.wateringFrequencyDays,
+      wateringMode: input.identification.wateringMode,
       lightNeeds: input.identification.lightNeeds,
       imageUrl: input.imageUrl,
       notes: input.identification.description,
@@ -208,8 +216,9 @@ export async function identifyPlantAction(
     {
       species: "Costilla de Adán",
       scientificName: "Monstera deliciosa",
-      category: "interior" as PlantCategory,
+      category: "tropical",
       wateringFrequencyDays: 7,
+      wateringMode: "soil",
       lightNeeds: "media",
       confidence: 0.94,
       description:
@@ -218,18 +227,20 @@ export async function identifyPlantAction(
     {
       species: "Potus",
       scientificName: "Epipremnum aureum",
-      category: "interior" as PlantCategory,
-      wateringFrequencyDays: 5,
+      category: "trepadora",
+      wateringFrequencyDays: 14,
+      wateringMode: "water",
       lightNeeds: "baja",
       confidence: 0.91,
       description:
-        "Trepadora muy resistente. Tolera poca luz y olvidos de riego.",
+        "Trepadora muy resistente. Crece bien en frasco con agua: cambiala cada 2 semanas.",
     },
     {
       species: "Aloe vera",
       scientificName: "Aloe barbadensis miller",
-      category: "suculenta" as PlantCategory,
+      category: "suculenta",
       wateringFrequencyDays: 14,
+      wateringMode: "soil",
       lightNeeds: "alta",
       confidence: 0.96,
       description:
@@ -238,12 +249,101 @@ export async function identifyPlantAction(
     {
       species: "Albahaca",
       scientificName: "Ocimum basilicum",
-      category: "comestible" as PlantCategory,
+      category: "comestible",
       wateringFrequencyDays: 2,
+      wateringMode: "soil",
       lightNeeds: "alta",
       confidence: 0.88,
       description:
         "Aromática anual. Necesita sol pleno y riego frecuente sin encharcar.",
+    },
+    {
+      species: "Orquídea Phalaenopsis",
+      scientificName: "Phalaenopsis amabilis",
+      category: "epifita",
+      wateringFrequencyDays: 3,
+      wateringMode: "mist",
+      lightNeeds: "media",
+      confidence: 0.89,
+      description:
+        "Epífita de raíces aéreas. Pulverizar cada 2-3 días y sumergir el sustrato semanalmente.",
+    },
+    {
+      species: "Lechuga hidropónica",
+      scientificName: "Lactuca sativa",
+      category: "hidroponia",
+      wateringFrequencyDays: 14,
+      wateringMode: "hydroponic",
+      lightNeeds: "alta",
+      confidence: 0.92,
+      description:
+        "Cultivo en NFT o DWC. Renová la solución nutritiva cada 2 semanas y mantené pH 5.5-6.5.",
+    },
+    {
+      species: "Lucky bamboo",
+      scientificName: "Dracaena sanderiana",
+      category: "acuatica",
+      wateringFrequencyDays: 10,
+      wateringMode: "water",
+      lightNeeds: "baja",
+      confidence: 0.90,
+      description:
+        "Vive en agua con piedras. Cambiá el agua cada 7-10 días y usá agua sin cloro.",
+    },
+    {
+      species: "Lavanda",
+      scientificName: "Lavandula angustifolia",
+      category: "exterior",
+      wateringFrequencyDays: 10,
+      wateringMode: "soil",
+      lightNeeds: "alta",
+      confidence: 0.87,
+      description:
+        "Mediterránea aromática. Suelo seco y bien drenado, sol pleno.",
+    },
+    {
+      species: "Rosa",
+      scientificName: "Rosa chinensis",
+      category: "floracion",
+      wateringFrequencyDays: 4,
+      wateringMode: "soil",
+      lightNeeds: "alta",
+      confidence: 0.93,
+      description:
+        "Arbusto floral clásico. Riego al pie evitando mojar las hojas, podas en invierno.",
+    },
+    {
+      species: "Ficus benjamina",
+      scientificName: "Ficus benjamina",
+      category: "arbol",
+      wateringFrequencyDays: 7,
+      wateringMode: "soil",
+      lightNeeds: "media",
+      confidence: 0.85,
+      description:
+        "Árbol de interior muy popular. No le gustan los cambios de lugar bruscos.",
+    },
+    {
+      species: "Ficus retusa (bonsai)",
+      scientificName: "Ficus retusa",
+      category: "bonsai",
+      wateringFrequencyDays: 3,
+      wateringMode: "soil",
+      lightNeeds: "media",
+      confidence: 0.86,
+      description:
+        "Bonsai resistente para principiantes. Riego cuando la superficie del sustrato se seca.",
+    },
+    {
+      species: "Tillandsia",
+      scientificName: "Tillandsia ionantha",
+      category: "epifita",
+      wateringFrequencyDays: 2,
+      wateringMode: "mist",
+      lightNeeds: "media",
+      confidence: 0.88,
+      description:
+        "Aérea sin sustrato. Pulverizá cada 2 días y sumergila 20 minutos por semana.",
     },
   ]
 

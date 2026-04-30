@@ -31,31 +31,28 @@ import {
 import { Spinner } from "@/components/ui/spinner"
 import { Badge } from "@/components/ui/badge"
 import { identifyPlantAction } from "@/lib/actions/plants"
-import type { PlantCategory, PlantIdentification } from "@/lib/types"
+import {
+  ALL_CATEGORIES,
+  ALL_WATERING_MODES,
+  CATEGORY_META,
+  LIGHT_OPTIONS,
+  WATERING_MODE_META,
+} from "@/lib/plant-meta"
+import type {
+  PlantCategory,
+  PlantIdentification,
+  WateringMode,
+} from "@/lib/types"
 import { usePlantManager } from "@/lib/hooks/use-plant-manager"
 import { cn } from "@/lib/utils"
 
 type Step = "upload" | "identifying" | "confirm"
-
-const CATEGORY_OPTIONS: { value: PlantCategory; label: string }[] = [
-  { value: "interior", label: "Interior" },
-  { value: "exterior", label: "Exterior" },
-  { value: "suculenta", label: "Suculenta" },
-  { value: "comestible", label: "Comestible / Aromática" },
-]
-
-const LIGHT_OPTIONS: { value: "alta" | "media" | "baja"; label: string }[] = [
-  { value: "baja", label: "Baja (sombra / interior poco iluminado)" },
-  { value: "media", label: "Media (luz indirecta)" },
-  { value: "alta", label: "Alta (sol directo)" },
-]
 
 export function ScannerPanel({
   onRegister,
   onDone,
 }: {
   onRegister: ReturnType<typeof usePlantManager>["registerPlant"]
-  /** Optional callback after a plant is saved (e.g. navigate to garden). */
   onDone?: () => void
 }) {
   const router = useRouter()
@@ -269,11 +266,12 @@ export function ScannerPanel({
                   {identification.description}
                 </p>
                 <div className="flex flex-wrap gap-1.5 text-xs">
-                  <Badge variant="outline" className="rounded-full capitalize">
-                    {identification.category}
+                  <Badge variant="outline" className="rounded-full">
+                    {CATEGORY_META[identification.category].label}
                   </Badge>
                   <Badge variant="outline" className="rounded-full">
-                    Riego cada {identification.wateringFrequencyDays} d
+                    {WATERING_MODE_META[identification.wateringMode].actionVerb}{" "}
+                    cada {identification.wateringFrequencyDays} d
                   </Badge>
                   <Badge variant="outline" className="rounded-full capitalize">
                     Luz {identification.lightNeeds}
@@ -324,47 +322,72 @@ export function ScannerPanel({
                   />
                 </Field>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <Field>
-                    <FieldLabel htmlFor="edit-category">Categoría</FieldLabel>
-                    <Select
-                      value={editDraft.category}
-                      onValueChange={(value) =>
-                        patchDraft({ category: value as PlantCategory })
-                      }
-                    >
-                      <SelectTrigger id="edit-category" className="rounded-2xl">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {CATEGORY_OPTIONS.map((opt) => (
-                          <SelectItem key={opt.value} value={opt.value}>
-                            {opt.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </Field>
+                <Field>
+                  <FieldLabel htmlFor="edit-category">Categoría</FieldLabel>
+                  <Select
+                    value={editDraft.category}
+                    onValueChange={(value) =>
+                      patchDraft({ category: value as PlantCategory })
+                    }
+                  >
+                    <SelectTrigger id="edit-category" className="rounded-2xl">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {ALL_CATEGORIES.map((cat) => (
+                        <SelectItem key={cat} value={cat}>
+                          {CATEGORY_META[cat].label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FieldDescription>
+                    {CATEGORY_META[editDraft.category].description}
+                  </FieldDescription>
+                </Field>
 
-                  <Field>
-                    <FieldLabel htmlFor="edit-watering">
-                      Riego (días)
-                    </FieldLabel>
-                    <Input
-                      id="edit-watering"
-                      type="number"
-                      min={1}
-                      max={60}
-                      value={editDraft.wateringFrequencyDays}
-                      onChange={(e) =>
-                        patchDraft({
-                          wateringFrequencyDays: Number(e.target.value) || 1,
-                        })
-                      }
-                      className="rounded-2xl"
-                    />
-                  </Field>
-                </div>
+                <Field>
+                  <FieldLabel htmlFor="edit-mode">Modo de cuidado</FieldLabel>
+                  <Select
+                    value={editDraft.wateringMode}
+                    onValueChange={(value) =>
+                      patchDraft({ wateringMode: value as WateringMode })
+                    }
+                  >
+                    <SelectTrigger id="edit-mode" className="rounded-2xl">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {ALL_WATERING_MODES.map((m) => (
+                        <SelectItem key={m} value={m}>
+                          {WATERING_MODE_META[m].label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FieldDescription>
+                    {WATERING_MODE_META[editDraft.wateringMode].description}
+                  </FieldDescription>
+                </Field>
+
+                <Field>
+                  <FieldLabel htmlFor="edit-watering">
+                    {WATERING_MODE_META[editDraft.wateringMode].frequencyLabel}
+                  </FieldLabel>
+                  <Input
+                    id="edit-watering"
+                    type="number"
+                    min={1}
+                    max={60}
+                    value={editDraft.wateringFrequencyDays}
+                    onChange={(e) =>
+                      patchDraft({
+                        wateringFrequencyDays: Number(e.target.value) || 1,
+                      })
+                    }
+                    className="rounded-2xl"
+                  />
+                </Field>
 
                 <Field>
                   <FieldLabel htmlFor="edit-light">Luz que necesita</FieldLabel>

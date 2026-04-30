@@ -3,14 +3,8 @@
 import { Flower2 } from "lucide-react"
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty"
 import { PlantCard } from "./plant-card"
+import { CATEGORY_META } from "@/lib/plant-meta"
 import type { Plant, PlantCategory } from "@/lib/types"
-
-const EMPTY_MESSAGES: Record<PlantCategory, string> = {
-  interior: "Aún no tenés plantas de interior. Escaneá una para empezar.",
-  exterior: "Sin plantas de exterior registradas.",
-  suculenta: "No hay suculentas en el jardín todavía.",
-  comestible: "Sin aromáticas ni comestibles registradas.",
-}
 
 export function PlantGrid({
   groupedByCategory,
@@ -23,7 +17,8 @@ export function PlantGrid({
   onWater: (id: string) => void
   isPending?: boolean
 }) {
-  const plants = groupedByCategory[currentCategory]
+  const plants = groupedByCategory[currentCategory] ?? []
+  const meta = CATEGORY_META[currentCategory]
 
   return (
     <div className="px-5 pb-2 pt-[75px]">
@@ -32,7 +27,9 @@ export function PlantGrid({
           <EmptyHeader>
             <Flower2 className="size-8 mx-auto mb-3 text-muted-foreground" aria-hidden="true" />
             <EmptyTitle className="font-serif">Nada por aquí todavía</EmptyTitle>
-            <EmptyDescription>{EMPTY_MESSAGES[currentCategory]}</EmptyDescription>
+            <EmptyDescription>
+              Sin plantas en {meta.label.toLowerCase()}. {meta.description} Escaneá una para empezar.
+            </EmptyDescription>
           </EmptyHeader>
         </Empty>
       ) : (

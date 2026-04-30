@@ -22,6 +22,7 @@ export async function POST(req: Request) {
     species: p.species,
     category: p.category,
     wateringFrequencyDays: p.wateringFrequencyDays,
+    wateringMode: p.wateringMode,
     lightNeeds: p.lightNeeds,
     lastWateredAt: p.lastWateredAt
       ? new Date(p.lastWateredAt).toISOString().slice(0, 10)

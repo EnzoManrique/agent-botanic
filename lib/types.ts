@@ -1,4 +1,28 @@
-export type PlantCategory = "interior" | "exterior" | "suculenta" | "comestible"
+export type PlantCategory =
+  | "interior"
+  | "exterior"
+  | "suculenta"
+  | "comestible"
+  | "floracion"
+  | "tropical"
+  | "trepadora"
+  | "arbol"
+  | "acuatica"
+  | "hidroponia"
+  | "epifita"
+  | "bonsai"
+
+/**
+ * Modo de cuidado principal:
+ * - soil:        en tierra, riego normal cada X días
+ * - water:       vive en agua (potus en frasco, lucky bamboo); se CAMBIA el agua
+ * - hydroponic:  sistema hidropónico; se renueva la SOLUCIÓN NUTRITIVA
+ * - mist:        epífita / aérea (orquídeas, tillandsias); se PULVERIZA
+ *
+ * El campo `wateringFrequencyDays` se reinterpreta según este modo:
+ * cada cuántos días corresponde la acción de cuidado.
+ */
+export type WateringMode = "soil" | "water" | "hydroponic" | "mist"
 
 export interface Plant {
   id: string
@@ -8,6 +32,7 @@ export interface Plant {
   category: PlantCategory
   imageUrl: string
   wateringFrequencyDays: number
+  wateringMode: WateringMode
   lightNeeds: "alta" | "media" | "baja"
   createdAt: number
   lastWateredAt: number | null
@@ -42,6 +67,7 @@ export interface PlantIdentification {
   scientificName: string
   category: PlantCategory
   wateringFrequencyDays: number
+  wateringMode: WateringMode
   lightNeeds: "alta" | "media" | "baja"
   confidence: number
   description: string

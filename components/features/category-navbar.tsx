@@ -1,30 +1,8 @@
 "use client"
 
-import { Sprout, Trees, Flower2, Wheat } from "lucide-react"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { ALL_CATEGORIES, CATEGORY_META } from "@/lib/plant-meta"
 import type { PlantCategory } from "@/lib/types"
-
-const CATEGORY_META: Record<
-  PlantCategory,
-  { label: string; icon: typeof Sprout }
-> = {
-  interior: {
-    label: "Interior",
-    icon: Sprout,
-  },
-  exterior: {
-    label: "Exterior",
-    icon: Trees,
-  },
-  suculenta: {
-    label: "Suculentas",
-    icon: Flower2,
-  },
-  comestible: {
-    label: "Comestibles",
-    icon: Wheat,
-  },
-}
 
 export function CategoryNavbar({
   groupedByCategory,
@@ -35,8 +13,7 @@ export function CategoryNavbar({
   defaultTab: PlantCategory
   onTabChange: (tab: PlantCategory) => void
 }) {
-  const categories = Object.keys(CATEGORY_META) as PlantCategory[]
-  const totalPlants = categories.reduce(
+  const totalPlants = ALL_CATEGORIES.reduce(
     (sum, cat) => sum + (groupedByCategory[cat] ?? 0),
     0,
   )
@@ -61,9 +38,9 @@ export function CategoryNavbar({
           className="w-full"
         >
           <TabsList className="h-auto w-full justify-start gap-2 rounded-2xl bg-transparent p-0 overflow-x-auto scrollbar-hide">
-            {categories.map((cat) => {
+            {ALL_CATEGORIES.map((cat) => {
               const Icon = CATEGORY_META[cat].icon
-              const count = groupedByCategory[cat]
+              const count = groupedByCategory[cat] ?? 0
 
               return (
                 <TabsTrigger
