@@ -140,18 +140,39 @@ export async function logoutAction() {
 }
 
 /**
- * Inicia el flujo de OAuth con Google.
+ * Inicia el flujo de Google OAuth. Esta action devuelve la URL a la que el
+ * cliente debe navegar (la pantalla de consentimiento de Google).
  *
- * Auth.js v5 maneja la redirección a accounts.google.com por nosotros: este
- * action ejecuta `signIn("google")` que termina lanzando un NEXT_REDIRECT.
- * No retorna — el browser sigue el redirect y, después del callback en
- * `/api/auth/callback/google`, vuelve a `redirectTo` con la sesión creada.
+ * Por qué no usamos `signIn("google", { redirectTo: "/" })` directo:
+ * cuando se llama desde un Server Action, `signIn` lanza un `NEXT_REDIRECT`
+ * que el navegador sigue como un GET normal — pero solo si el form action
+ * está envuelto correctamente. Lo más robusto es retornar la URL y que el
+ * cliente haga `window.location.href = url`, lo que también nos permite
+ * mostrar un toast de error si algo falla.
  */
-export async function loginWithGoogleAction(): Promise<never> {
-  // El throw NEXT_REDIRECT sale solo; lo dejamos propagarse para que Next.js
-  // lo intercepte y haga el redirect. Si lo capturáramos, romperíamos el flow.
-  await signIn("google", { redirectTo: "/" })
-  // signIn siempre redirige cuando es un OAuth provider, así que esta línea
-  // no se alcanza nunca. La dejamos por el tipo de retorno.
-  throw new Error("signIn no redirigió")
+export async function getGoogleSignInUrl(redirectTo = "/"): Promise<
+  { ok: true; url: string } | { ok: false; error: string }
+> {
+  try {
+    // signIn con `redirect: false` devuelve la URL en lugar de redirigir.
+    const url = await signIn("google", {
+      redirect: false,
+      redirectTo,
+    })
+    if (typeof url !== "string") {
+      return { ok: false, error: "No pudimos iniciar el flujo con Google." }
+    }
+    return { ok: true, url }
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      (error.message === "NEXT_REDIRECT" || error.message.includes("NEXT_"))
+    ) {
+      // Auth.js a veces lanza NEXT_REDIRECT incluso con redirect:false en
+      // ciertos paths. Lo relanzamos para que Next siga el flujo normal.
+      throw error
+    }
+    console.error("[v0] Error generando Google sign-in URL:", error)
+    return { ok: false, error: "No pudimos iniciar el flujo con Google." }
+  }
 }

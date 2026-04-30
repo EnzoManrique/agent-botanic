@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
-import { loginWithGoogleAction } from "@/lib/actions/auth"
+import { getGoogleSignInUrl } from "@/lib/actions/auth"
 import { toast } from "sonner"
 
 function GoogleIcon({ className }: { className?: string }) {
@@ -48,41 +48,44 @@ function AppleIcon({ className }: { className?: string }) {
   )
 }
 
-export function SocialButtons() {
-  const [pending, setPending] = useState<"google" | "apple" | null>(null)
+interface SocialButtonsProps {
+  /** Where to navigate after a successful provider sign-in. Defaults to "/". */
+  redirectTo?: string
+}
+
+export function SocialButtons({ redirectTo = "/" }: SocialButtonsProps) {
+  const [pending, setPending] = useState(false)
 
   async function handleGoogle() {
     if (pending) return
-    setPending("google")
+    setPending(true)
     try {
-      // El action redirige al usuario a accounts.google.com. No retorna nunca
-      // en el flujo feliz — el browser sigue el 302 server-side. Si volvemos
-      // acá significa que algo explotó antes del redirect.
-      await loginWithGoogleAction()
-    } catch (error) {
-      // NEXT_REDIRECT también es un Error con .digest === "NEXT_REDIRECT".
-      // Si lo vemos acá quiere decir que el browser está siguiendo el redirect,
-      // así que NO mostramos error.
-      if (
-        error instanceof Error &&
-        (error.message.includes("NEXT_REDIRECT") ||
-          (error as { digest?: string }).digest?.startsWith("NEXT_REDIRECT"))
-      ) {
+      const res = await getGoogleSignInUrl(redirectTo)
+      if (!res.ok) {
+        toast.error(res.error)
+        setPending(false)
         return
       }
-      console.error("[v0] Error iniciando login con Google:", error)
-      toast.error("No pudimos abrir Google. Probá de nuevo.")
-      setPending(null)
+      // Navegamos al consent screen de Google. Después de que el usuario
+      // autorice, Google rebota a /api/auth/callback/google y Auth.js termina
+      // dejándolo en `redirectTo`.
+      window.location.href = res.url
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "No pudimos abrir el ingreso con Google.",
+      )
+      setPending(false)
     }
   }
 
   function handleApple() {
-    // Apple Sign In requiere una cuenta de Apple Developer (US$ 99/año) y un
-    // dominio verificado, así que para esta versión queda como "próximamente".
-    // Lo dejamos visible para mantener el diseño y darle señal al usuario de
-    // que vamos a sumarlo.
-    toast.info("Próximamente", {
-      description: "Apple Sign In todavía no está disponible.",
+    // Apple Sign-In requiere una cuenta de Apple Developer ($99/año) para
+    // generar el client_secret JWT. Lo dejamos visible pero deshabilitado
+    // para que la UI quede completa de cara al demo.
+    toast.info("Apple llega pronto", {
+      description: "Por ahora podés entrar con Google o con tu mail.",
     })
   }
 
@@ -93,10 +96,10 @@ export function SocialButtons() {
         variant="outline"
         size="lg"
         onClick={handleGoogle}
-        disabled={pending !== null}
+        disabled={pending}
         className="border-border bg-card hover:bg-secondary/60 h-12 w-full justify-center gap-3 rounded-2xl border-2 text-sm font-semibold shadow-soft"
       >
-        {pending === "google" ? (
+        {pending ? (
           <Spinner className="size-4" />
         ) : (
           <GoogleIcon className="size-5" />
@@ -108,11 +111,16 @@ export function SocialButtons() {
         variant="outline"
         size="lg"
         onClick={handleApple}
-        disabled={pending !== null}
-        className="border-border bg-foreground text-background hover:bg-foreground/90 h-12 w-full justify-center gap-3 rounded-2xl border-2 text-sm font-semibold shadow-soft"
+        disabled={pending}
+        aria-label="Continuar con Apple (próximamente)"
+        title="Próximamente"
+        className="border-border bg-foreground/90 text-background hover:bg-foreground relative h-12 w-full justify-center gap-3 rounded-2xl border-2 text-sm font-semibold shadow-soft"
       >
         <AppleIcon className="size-5" />
         Continuar con Apple
+        <span className="bg-background/15 absolute right-3 rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wide uppercase">
+          Pronto
+        </span>
       </Button>
     </div>
   )

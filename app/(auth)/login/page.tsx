@@ -25,7 +25,7 @@ export default function LoginPage() {
         </p>
       }
     >
-      <SocialButtons />
+      <SocialButtons redirectTo="/" />
 
       <div className="my-6 flex items-center gap-3">
         <div className="bg-border h-px flex-1" />

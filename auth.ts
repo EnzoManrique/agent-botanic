@@ -9,13 +9,14 @@ import { sql, type DbUser } from "@/lib/db"
 /**
  * Configuración principal de Auth.js (NextAuth v5).
  *
- * - Usa el Credentials Provider (email + password).
- * - Valida los inputs con zod.
- * - Busca el usuario en la tabla `users` de Postgres.
- * - Compara el password con bcrypt.
+ * Soporta dos formas de iniciar sesión:
+ * 1. Credentials (email + password) — valida contra `users` con bcrypt.
+ * 2. Google OAuth — primera vez crea/upserta el user en `users` con
+ *    provider='google' y password=null. Las veces siguientes simplemente
+ *    matchea por email.
  *
- * Si todo está OK devuelve los datos del usuario y NextAuth crea la sesión
- * (un JWT firmado con AUTH_SECRET, guardado en una cookie httpOnly).
+ * NextAuth crea la sesión como JWT firmado con AUTH_SECRET, en cookie
+ * httpOnly.
  */
 
 async function getUserByEmail(email: string): Promise<DbUser | null> {
@@ -33,6 +34,33 @@ async function getUserByEmail(email: string): Promise<DbUser | null> {
   }
 }
 
+/**
+ * Inserta el usuario si es la primera vez que entra con Google, o devuelve
+ * el id existente si ya estaba en la base. No toca el password — los users
+ * de OAuth tienen password=null.
+ */
+async function upsertOAuthUser(input: {
+  email: string
+  name: string
+  imageUrl?: string | null
+  provider: string
+}): Promise<{ id: number } | null> {
+  try {
+    const rows = (await sql`
+      INSERT INTO users (email, name, provider, image_url)
+      VALUES (${input.email}, ${input.name}, ${input.provider}, ${input.imageUrl ?? null})
+      ON CONFLICT (email) DO UPDATE
+        SET name = EXCLUDED.name,
+            image_url = COALESCE(EXCLUDED.image_url, users.image_url)
+      RETURNING id
+    `) as { id: number }[]
+    return rows[0] ?? null
+  } catch (error) {
+    console.error("[v0] Error en upsertOAuthUser:", error)
+    return null
+  }
+}
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
   // Pasamos el secret explícitamente. NextAuth v5 también lo lee solo de
@@ -43,60 +71,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   // un host distinto al esperado. Sin trustHost, Auth.js corta el handshake.
   trustHost: true,
   session: { strategy: "jwt" },
-  callbacks: {
-    ...authConfig.callbacks,
-    /**
-     * Se ejecuta una vez por OAuth flow exitoso, ANTES de que se cree el JWT.
-     * Acá hacemos un upsert del usuario de Google en nuestra tabla `users` y
-     * mutamos `user.id` para que apunte al PK numérico de Postgres (no al ID
-     * de Google). Si lo dejáramos como ID de Google, todas las queries por
-     * `user_email` seguirían funcionando, pero `session.user.id` sería distinto
-     * al de credentials, y eso rompería el invariante que asume el resto del
-     * código.
-     */
-    async signIn({ user, account }) {
-      // Para credentials, ya hicimos todo en authorize. No hay nada que upsertar.
-      if (account?.provider !== "google") return true
-
-      if (!user.email || !user.name) {
-        console.error("[v0] Google no devolvió email/name; rechazando login")
-        return false
-      }
-
-      const email = user.email.toLowerCase().trim()
-      try {
-        const rows = (await sql`
-          INSERT INTO users (email, name, image_url, provider)
-          VALUES (${email}, ${user.name}, ${user.image ?? null}, 'google')
-          ON CONFLICT (email) DO UPDATE
-            SET name = EXCLUDED.name,
-                image_url = EXCLUDED.image_url
-          RETURNING id, name, email
-        `) as { id: number; name: string; email: string }[]
-
-        const dbUser = rows[0]
-        if (!dbUser) return false
-
-        // Mutamos el user para que el siguiente callback (jwt) reciba el id de DB.
-        user.id = String(dbUser.id)
-        user.name = dbUser.name
-        user.email = dbUser.email
-        return true
-      } catch (error) {
-        console.error("[v0] Error upserteando usuario de Google:", error)
-        return false
-      }
-    },
-  },
   providers: [
-    Google({
-      clientId: process.env.AUTH_GOOGLE_ID,
-      clientSecret: process.env.AUTH_GOOGLE_SECRET,
-      // `account_selection`: si el usuario tiene varias cuentas Google logueadas
-      // en el browser, le mostramos el chooser explícito. Mejor UX que entrar
-      // automáticamente con la "principal".
-      authorization: { params: { prompt: "select_account" } },
-    }),
     Credentials({
       async authorize(credentials) {
         const parsed = z
@@ -110,11 +85,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         const { email, password } = parsed.data
         const user = await getUserByEmail(email.toLowerCase().trim())
-        if (!user) return null
-
-        // Si el user existe pero se registró con Google, no tiene password.
-        // Devolvemos null para que el flujo de credentials falle limpio.
-        if (!user.password) return null
+        if (!user || !user.password) {
+          // Si el user no existe, o existe pero entró por OAuth (sin password),
+          // rechazamos el login por credentials. Hay que entrar por Google.
+          return null
+        }
 
         const ok = await bcrypt.compare(password, user.password)
         if (!ok) return null
@@ -127,5 +102,56 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
       },
     }),
+    Google({
+      // Auth.js lee AUTH_GOOGLE_ID / AUTH_GOOGLE_SECRET del env automáticamente,
+      // pero ser explícito ayuda a documentar qué necesita el proyecto.
+      clientId: process.env.AUTH_GOOGLE_ID,
+      clientSecret: process.env.AUTH_GOOGLE_SECRET,
+      // Le decimos a Google que devuelva siempre el "consent screen" cuando
+      // pasa más de un día, así si el usuario revoca permisos los re-pide.
+      authorization: {
+        params: { prompt: "select_account" },
+      },
+    }),
   ],
+  callbacks: {
+    ...authConfig.callbacks,
+    /**
+     * Se ejecuta antes del callback `jwt`. Nos sirve para:
+     *  - Upsertar el usuario de Google en nuestra tabla la primera vez.
+     *  - Inyectar nuestro id de DB en el `user.id` (en vez del id de Google).
+     */
+    async signIn({ user, account, profile }) {
+      // Solo nos interesa interceptar el flujo de Google. Credentials ya viene
+      // resuelto desde authorize().
+      if (account?.provider !== "google") return true
+
+      const email = (user.email ?? profile?.email ?? "").toLowerCase().trim()
+      if (!email) {
+        console.error("[v0] Google no devolvió email; rechazamos.")
+        return false
+      }
+
+      const name = user.name ?? (profile?.name as string | undefined) ?? "Usuaria/o"
+      const imageUrl =
+        user.image ?? (profile?.picture as string | undefined) ?? null
+
+      const upserted = await upsertOAuthUser({
+        email,
+        name,
+        imageUrl,
+        provider: "google",
+      })
+      if (!upserted) {
+        console.error("[v0] No pudimos upsertar el user de Google.")
+        return false
+      }
+
+      // Reescribimos el id que viaja al callback `jwt`. Después de esto,
+      // session.user.id va a ser el id de nuestra DB (numérico como string),
+      // que es lo que el resto de la app espera.
+      user.id = String(upserted.id)
+      return true
+    },
+  },
 })

@@ -5,7 +5,8 @@ import type { NextAuthConfig } from "next-auth"
  *
  * Este archivo NO importa nada que use Node APIs (como bcryptjs o el cliente
  * de Postgres) para que pueda ejecutarse dentro del middleware/proxy en el
- * runtime Edge. La lógica pesada (validar contra la base) vive en `auth.ts`.
+ * runtime Edge. La lógica pesada (validar contra la base, upsert de OAuth)
+ * vive en `auth.ts`.
  */
 
 // Rutas de auth (públicas). Todo lo demás requiere sesión.
@@ -35,7 +36,10 @@ export const authConfig = {
       return isLoggedIn
     },
     async jwt({ token, user }) {
-      // En el primer login, copiamos los datos del usuario al token
+      // En el primer login, copiamos los datos del usuario al token.
+      // Para OAuth, `user.id` puede no ser nuestro id de DB todavía; en ese
+      // caso lo refrescamos desde la base la primera vez que hace falta
+      // (lo resuelve el callback signIn de auth.ts antes de llegar acá).
       if (user) {
         token.id = user.id
         token.email = user.email
