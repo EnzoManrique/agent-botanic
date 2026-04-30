@@ -1,10 +1,9 @@
 "use client"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
-import { useAuth } from "@/lib/hooks/use-auth"
+import { loginWithGoogleAction } from "@/lib/actions/auth"
 import { toast } from "sonner"
 
 function GoogleIcon({ className }: { className?: string }) {
@@ -49,33 +48,42 @@ function AppleIcon({ className }: { className?: string }) {
   )
 }
 
-interface SocialButtonsProps {
-  /** Where to navigate after a successful provider sign-in. Defaults to "/". */
-  redirectTo?: string
-}
-
-export function SocialButtons({ redirectTo = "/" }: SocialButtonsProps) {
-  const router = useRouter()
-  const { loginWithProvider } = useAuth()
+export function SocialButtons() {
   const [pending, setPending] = useState<"google" | "apple" | null>(null)
 
-  async function handle(provider: "google" | "apple") {
+  async function handleGoogle() {
     if (pending) return
-    setPending(provider)
+    setPending("google")
     try {
-      const u = await loginWithProvider(provider)
-      toast.success(`Listo, ${u.name.split(" ")[0]}`, {
-        description: "Te dejamos en tu jardín.",
-      })
-      router.push(redirectTo)
+      // El action redirige al usuario a accounts.google.com. No retorna nunca
+      // en el flujo feliz — el browser sigue el 302 server-side. Si volvemos
+      // acá significa que algo explotó antes del redirect.
+      await loginWithGoogleAction()
     } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : "No pudimos completar el ingreso."
-      toast.error(message)
+      // NEXT_REDIRECT también es un Error con .digest === "NEXT_REDIRECT".
+      // Si lo vemos acá quiere decir que el browser está siguiendo el redirect,
+      // así que NO mostramos error.
+      if (
+        error instanceof Error &&
+        (error.message.includes("NEXT_REDIRECT") ||
+          (error as { digest?: string }).digest?.startsWith("NEXT_REDIRECT"))
+      ) {
+        return
+      }
+      console.error("[v0] Error iniciando login con Google:", error)
+      toast.error("No pudimos abrir Google. Probá de nuevo.")
       setPending(null)
     }
+  }
+
+  function handleApple() {
+    // Apple Sign In requiere una cuenta de Apple Developer (US$ 99/año) y un
+    // dominio verificado, así que para esta versión queda como "próximamente".
+    // Lo dejamos visible para mantener el diseño y darle señal al usuario de
+    // que vamos a sumarlo.
+    toast.info("Próximamente", {
+      description: "Apple Sign In todavía no está disponible.",
+    })
   }
 
   return (
@@ -84,7 +92,7 @@ export function SocialButtons({ redirectTo = "/" }: SocialButtonsProps) {
         type="button"
         variant="outline"
         size="lg"
-        onClick={() => handle("google")}
+        onClick={handleGoogle}
         disabled={pending !== null}
         className="border-border bg-card hover:bg-secondary/60 h-12 w-full justify-center gap-3 rounded-2xl border-2 text-sm font-semibold shadow-soft"
       >
@@ -99,15 +107,11 @@ export function SocialButtons({ redirectTo = "/" }: SocialButtonsProps) {
         type="button"
         variant="outline"
         size="lg"
-        onClick={() => handle("apple")}
+        onClick={handleApple}
         disabled={pending !== null}
         className="border-border bg-foreground text-background hover:bg-foreground/90 h-12 w-full justify-center gap-3 rounded-2xl border-2 text-sm font-semibold shadow-soft"
       >
-        {pending === "apple" ? (
-          <Spinner className="size-4" />
-        ) : (
-          <AppleIcon className="size-5" />
-        )}
+        <AppleIcon className="size-5" />
         Continuar con Apple
       </Button>
     </div>

@@ -26,7 +26,7 @@ export default function RegistroPage() {
         </p>
       }
     >
-      <SocialButtons redirectTo="/" />
+      <SocialButtons />
 
       <div className="my-6 flex items-center gap-3">
         <div className="bg-border h-px flex-1" />

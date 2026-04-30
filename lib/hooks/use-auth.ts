@@ -70,10 +70,6 @@ export function useAuth() {
     [update],
   )
 
-  const loginWithProvider = useCallback(async (_provider: "google" | "apple"): Promise<AuthUser> => {
-    throw new Error("Por ahora solo está disponible el ingreso con mail.")
-  }, [])
-
   const logout = useCallback(async () => {
     // Server action: cierra la sesión del lado del servidor (borra la cookie).
     // Después le pedimos a useSession que se actualice para limpiar el estado.
@@ -91,7 +87,6 @@ export function useAuth() {
     loading: status === "loading",
     login,
     register,
-    loginWithProvider,
     logout,
     requestReset,
   }

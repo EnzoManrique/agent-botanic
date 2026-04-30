@@ -138,3 +138,20 @@ export async function logoutAction() {
   // así evitamos el throw NEXT_REDIRECT cuando se invoca desde un onClick.
   await signOut({ redirect: false })
 }
+
+/**
+ * Inicia el flujo de OAuth con Google.
+ *
+ * Auth.js v5 maneja la redirección a accounts.google.com por nosotros: este
+ * action ejecuta `signIn("google")` que termina lanzando un NEXT_REDIRECT.
+ * No retorna — el browser sigue el redirect y, después del callback en
+ * `/api/auth/callback/google`, vuelve a `redirectTo` con la sesión creada.
+ */
+export async function loginWithGoogleAction(): Promise<never> {
+  // El throw NEXT_REDIRECT sale solo; lo dejamos propagarse para que Next.js
+  // lo intercepte y haga el redirect. Si lo capturáramos, romperíamos el flow.
+  await signIn("google", { redirectTo: "/" })
+  // signIn siempre redirige cuando es un OAuth provider, así que esta línea
+  // no se alcanza nunca. La dejamos por el tipo de retorno.
+  throw new Error("signIn no redirigió")
+}
