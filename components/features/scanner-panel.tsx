@@ -3,6 +3,7 @@
 import { useRef, useState, useTransition } from "react"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 import {
   Camera,
   Sparkles,
@@ -31,6 +32,7 @@ import {
 import { Spinner } from "@/components/ui/spinner"
 import { Badge } from "@/components/ui/badge"
 import { identifyPlantAction } from "@/lib/actions/plants"
+import { downscaleImage } from "@/lib/image-utils"
 import {
   ALL_CATEGORIES,
   ALL_WATERING_MODES,
@@ -81,11 +83,18 @@ export function ScannerPanel({
   async function handleFile(file: File) {
     const reader = new FileReader()
     reader.onload = async () => {
-      const dataUrl = reader.result as string
-      setImageDataUrl(dataUrl)
+      const original = reader.result as string
+      // Bajamos resolución antes de mandar a la IA: más rápido y más barato.
+      const compressed = await downscaleImage(original, 1024, 0.8)
+      setImageDataUrl(compressed)
       setStep("identifying")
-      const result = await identifyPlantAction(dataUrl)
-      setIdentification(result)
+      const result = await identifyPlantAction(compressed)
+      if (!result.ok) {
+        toast.error(result.error)
+        reset()
+        return
+      }
+      setIdentification(result.identification)
       setStep("confirm")
     }
     reader.readAsDataURL(file)
@@ -225,7 +234,14 @@ export function ScannerPanel({
               </div>
               <div className="flex items-center gap-2">
                 {!isEditing ? (
-                  <Badge variant="secondary" className="shrink-0 rounded-full">
+                  <Badge
+                    variant={
+                      identification.confidence >= 0.85
+                        ? "secondary"
+                        : "outline"
+                    }
+                    className="shrink-0 rounded-full"
+                  >
                     {Math.round(identification.confidence * 100)}%
                   </Badge>
                 ) : null}
@@ -262,6 +278,12 @@ export function ScannerPanel({
                     {identification.scientificName}
                   </p>
                 </div>
+                {identification.confidence < 0.7 ? (
+                  <p className="rounded-2xl border border-amber-300/60 bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
+                    Tengo dudas con esta foto. Revisá los datos y editá lo que
+                    haga falta antes de sumarla al jardín.
+                  </p>
+                ) : null}
                 <p className="text-sm leading-relaxed">
                   {identification.description}
                 </p>
