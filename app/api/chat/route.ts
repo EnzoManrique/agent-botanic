@@ -136,11 +136,35 @@ ESTILO DE RESPUESTA
 - Si recomendás un sustrato, dosis o tratamiento, sé concreto (ej: "perlita 30% + turba 50% + corteza 20%", no "un sustrato bien drenado").
 - Si identificás mal una planta y el usuario te corrige, agradecele y ajustá tus recomendaciones.`
 
+  // Helper: convierte una excepción de tool en un objeto que el modelo puede
+  // leer y comunicar al usuario. Antes, si una tool tiraba (ej. Open-Meteo
+  // 503, ML 401, DB lenta), el stream se cortaba entero y la usuaria veía
+  // un toast genérico. Ahora la tool devuelve `{ error: "..." }` y el modelo
+  // se disculpa con contexto en lugar de morir.
+  const safeToolError = (toolName: string, err: unknown) => {
+    console.error(`[v0] Tool ${toolName} falló:`, err)
+    const msg = err instanceof Error ? err.message : "error desconocido"
+    return {
+      error: true,
+      message: `No pude completar ${toolName}: ${msg.slice(0, 120)}`,
+    }
+  }
+
   const result = streamText({
-    model: google("gemini-2.5-flash"),
+    // Usamos gemini-2.0-flash como principal: es más estable bajo carga
+    // que 2.5-flash (cuya capacidad pico tiene picos de 503/"high demand"
+    // varias veces al día) y para chat con tools rinde igual de bien. El
+    // 2.5-flash queda como fallback en el escaneo de fotos que sí necesita
+    // mejor detalle visual.
+    model: google("gemini-2.0-flash"),
     system,
     messages: await convertToModelMessages(messages),
     stopWhen: stepCountIs(5),
+    // Si el modelo en sí falla (no una tool), logueamos el detalle completo
+    // para poder diagnosticar qué pasó. El cliente ya lo captura vía onError.
+    onError: ({ error }) => {
+      console.error("[v0] streamText error:", error)
+    },
     tools: {
       getWeatherAlerts: tool({
         description:
@@ -149,17 +173,21 @@ ESTILO DE RESPUESTA
           reason: z.string().describe("Por qué se está consultando el clima"),
         }),
         execute: async () => {
-          const forecast = await getForecast(city)
-          const alerts = evaluateAlerts(forecast, alertPrefs)
-          return {
-            location: forecast.location.label,
-            now: {
-              tempC: Math.round(forecast.current.tempC),
-              humidity: Math.round(forecast.current.humidity),
-              windKmh: Math.round(forecast.current.windKmh),
-            },
-            alerts,
-            preferencesUsed: alertPrefs,
+          try {
+            const forecast = await getForecast(city)
+            const alerts = evaluateAlerts(forecast, alertPrefs)
+            return {
+              location: forecast.location.label,
+              now: {
+                tempC: Math.round(forecast.current.tempC),
+                humidity: Math.round(forecast.current.humidity),
+                windKmh: Math.round(forecast.current.windKmh),
+              },
+              alerts,
+              preferencesUsed: alertPrefs,
+            }
+          } catch (err) {
+            return safeToolError("getWeatherAlerts", err)
           }
         },
       }),
@@ -170,19 +198,23 @@ ESTILO DE RESPUESTA
           reason: z.string().describe("Para qué se está pidiendo el forecast"),
         }),
         execute: async () => {
-          const forecast = await getForecast(city)
-          return {
-            location: forecast.location.label,
-            days: forecast.daily.map((d) => ({
-              date: d.date,
-              tempMaxC: Math.round(d.tempMaxC),
-              tempMinC: Math.round(d.tempMinC),
-              precipitationMm: Math.round(d.precipitationMm * 10) / 10,
-              windMaxKmh: Math.round(d.windMaxKmh),
-              windGustsMaxKmh: Math.round(d.windGustsMaxKmh),
-              humidityMin: Math.round(d.humidityMin),
-              weatherCode: d.weatherCode,
-            })),
+          try {
+            const forecast = await getForecast(city)
+            return {
+              location: forecast.location.label,
+              days: forecast.daily.map((d) => ({
+                date: d.date,
+                tempMaxC: Math.round(d.tempMaxC),
+                tempMinC: Math.round(d.tempMinC),
+                precipitationMm: Math.round(d.precipitationMm * 10) / 10,
+                windMaxKmh: Math.round(d.windMaxKmh),
+                windGustsMaxKmh: Math.round(d.windGustsMaxKmh),
+                humidityMin: Math.round(d.humidityMin),
+                weatherCode: d.weatherCode,
+              })),
+            }
+          } catch (err) {
+            return safeToolError("getWeatherForecast", err)
           }
         },
       }),
@@ -191,6 +223,8 @@ ESTILO DE RESPUESTA
           "Lista todas las plantas registradas del usuario con su estado de riego.",
         inputSchema: z.object({}),
         execute: async () => {
+          // Esta tool no hace I/O: lee `plants` que ya está en memoria, así
+          // que no necesita try/catch.
           return { plants, total: plants.length }
         },
       }),
@@ -201,31 +235,35 @@ ESTILO DE RESPUESTA
           aliasOrId: z.string().describe("Alias o id de la planta"),
         }),
         execute: async ({ aliasOrId }) => {
-          const all = await getAllPlants(userEmail)
-          const q = aliasOrId.toLowerCase()
-          const plant = all.find(
-            (p) => p.id.toLowerCase() === q || p.alias.toLowerCase() === q,
-          )
-          if (!plant) {
-            return {
-              found: false,
-              message: `No encontré una planta con "${aliasOrId}".`,
+          try {
+            const all = await getAllPlants(userEmail)
+            const q = aliasOrId.toLowerCase()
+            const plant = all.find(
+              (p) => p.id.toLowerCase() === q || p.alias.toLowerCase() === q,
+            )
+            if (!plant) {
+              return {
+                found: false,
+                message: `No encontré una planta con "${aliasOrId}".`,
+              }
             }
-          }
-          const daysSince = plant.lastWateredAt
-            ? Math.floor(
-                (Date.now() - plant.lastWateredAt) / (1000 * 60 * 60 * 24),
-              )
-            : null
-          const needsWater =
-            daysSince === null || daysSince >= plant.wateringFrequencyDays
-          return {
-            found: true,
-            alias: plant.alias,
-            species: plant.species,
-            wateringFrequencyDays: plant.wateringFrequencyDays,
-            daysSinceLastWatering: daysSince,
-            needsWater,
+            const daysSince = plant.lastWateredAt
+              ? Math.floor(
+                  (Date.now() - plant.lastWateredAt) / (1000 * 60 * 60 * 24),
+                )
+              : null
+            const needsWater =
+              daysSince === null || daysSince >= plant.wateringFrequencyDays
+            return {
+              found: true,
+              alias: plant.alias,
+              species: plant.species,
+              wateringFrequencyDays: plant.wateringFrequencyDays,
+              daysSinceLastWatering: daysSince,
+              needsWater,
+            }
+          } catch (err) {
+            return safeToolError("checkWateringSchedule", err)
           }
         },
       }),
@@ -247,13 +285,17 @@ ESTILO DE RESPUESTA
             .describe("Máximo de productos. Default 6."),
         }),
         execute: async ({ query, limit }) => {
-          const products = await searchMercadoLibre(query, {
-            limit: limit ?? 6,
-          })
-          return {
-            query,
-            count: products.length,
-            products,
+          try {
+            const products = await searchMercadoLibre(query, {
+              limit: limit ?? 6,
+            })
+            return {
+              query,
+              count: products.length,
+              products,
+            }
+          } catch (err) {
+            return safeToolError("searchProducts", err)
           }
         },
       }),

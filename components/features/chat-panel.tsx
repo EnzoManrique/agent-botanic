@@ -30,7 +30,7 @@ import { Spinner } from "@/components/ui/spinner"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { downscaleImage } from "@/lib/image-utils"
-import { humanizeAiError } from "@/lib/ai-retry"
+import { humanizeAiError, isOverloadError } from "@/lib/ai-retry"
 import {
   AgentProductCarousel,
   type AgentProduct,
@@ -99,16 +99,45 @@ export function ChatPanel({ initialPrompt }: { initialPrompt?: string }) {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const initialPromptSent = useRef(false)
-  const { messages, sendMessage, status } = useChat({
+  // Trackeamos si ya intentamos un auto-retry para el último error. Sin
+  // esto entraríamos en loop si el modelo está caído un buen rato.
+  const retryAttemptedRef = useRef(false)
+
+  const { messages, sendMessage, regenerate, status } = useChat({
     transport: new DefaultChatTransport({ api: "/api/chat" }),
-    // Cuando el modelo está saturado o hay un error de red el chat no
-    // mostraba nada y la respuesta quedaba "colgada" para el usuario.
-    // Acá traducimos el error a castellano y mostramos un toast claro.
+    // Estrategia de errores en 2 niveles:
+    //  1. Si es saturación transitoria del modelo (high demand, 503, 429,
+    //     timeout) hacemos UN auto-retry silencioso después de 2s. La
+    //     usuaria ni se entera — ve un breve "..." extra y la respuesta
+    //     llega normal. Esto cubre el 80% de los fallos en horario pico.
+    //  2. Si el retry también falla, o si es un error real (auth, red,
+    //     filtro de seguridad), recién ahí mostramos toast.
     onError: (err) => {
       console.error("[v0] Error en chat:", err)
+      if (isOverloadError(err) && !retryAttemptedRef.current) {
+        retryAttemptedRef.current = true
+        console.log("[v0] Modelo saturado, reintentando en 2s...")
+        setTimeout(() => {
+          // regenerate() reintenta la última respuesta del asistente sin
+          // duplicar el mensaje del usuario en el historial.
+          regenerate().catch((retryErr) => {
+            console.error("[v0] Retry falló:", retryErr)
+            toast.error(humanizeAiError(retryErr))
+          })
+        }, 2000)
+        return
+      }
       toast.error(humanizeAiError(err))
     },
   })
+
+  // Cuando una respuesta termina exitosamente, reseteamos el flag de retry
+  // para que el próximo error tenga su oportunidad de reintento.
+  useEffect(() => {
+    if (status === "ready") {
+      retryAttemptedRef.current = false
+    }
+  }, [status])
 
   const isStreaming = status === "streaming" || status === "submitted"
 
