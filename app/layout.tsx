@@ -24,15 +24,31 @@ export const metadata: Metadata = {
   generator: "v0.app",
   applicationName: "Secretary Botanic",
   manifest: "/manifest.webmanifest",
+  // Iconos para todos los contextos: browser tab, PWA Android, iOS home screen.
+  // Next.js inyecta automáticamente las <link> tags correctas.
+  icons: {
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+    ],
+    apple: [
+      { url: "/apple-touch-icon.jpg", sizes: "1024x1024" },
+    ],
+    shortcut: ["/icon.svg"],
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
     title: "Secretary Botanic",
+    startupImage: ["/apple-touch-icon.jpg"],
   },
 }
 
 export const viewport: Viewport = {
-  themeColor: "#3a6b4a",
+  // Cream del header para que el status bar del notch en iOS se funda
+  // con la barra superior de la app (no se ve un "corte" verde encima).
+  // iOS Safari calcula automáticamente el color del texto del status bar
+  // según el contraste, así que con cream queda con texto oscuro legible.
+  themeColor: "#f5efe0",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,

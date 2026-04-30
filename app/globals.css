@@ -144,3 +144,15 @@
     0 12px 28px -10px oklch(0.28 0.04 145 / 0.22),
     0 4px 8px -4px oklch(0.28 0.04 145 / 0.12);
 }
+
+/* Oculta la scrollbar pero mantiene el scroll funcional. La usamos en
+   barras horizontales como el filtro de categorías del jardín, donde
+   queremos comunicar el scroll con un fade en los bordes en lugar de
+   una scrollbar nativa que se ve "borrador" en mobile. */
+@utility scrollbar-hide {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge legacy */
+  &::-webkit-scrollbar {
+    display: none; /* Chrome/Safari/Opera */
+  }
+}

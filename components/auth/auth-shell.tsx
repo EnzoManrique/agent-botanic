@@ -36,21 +36,28 @@ export function AuthShell({
         </Link>
       ) : null}
 
-      <div
-        className="bg-primary text-primary-foreground mb-6 inline-flex size-14 items-center justify-center rounded-2xl shadow-soft"
-        aria-hidden="true"
-      >
-        <Sprout className="size-7" strokeWidth={2.4} />
-      </div>
+      {/* Header: título + subtítulo a la izquierda, ícono a la derecha.
+          El ícono usa ml-auto para pegarse a la derecha, y items-start
+          alinea verticalmente el ícono con la primera línea del título. */}
+      <div className="mb-8 flex items-start gap-4">
+        <div className="flex-1 min-w-0">
+          <h1 className="font-serif text-3xl leading-[1.1] font-bold text-balance">
+            {title}
+          </h1>
+          {subtitle ? (
+            <p className="text-muted-foreground mt-2 text-sm leading-relaxed text-pretty">
+              {subtitle}
+            </p>
+          ) : null}
+        </div>
 
-      <h1 className="font-serif text-3xl leading-[1.1] font-bold text-balance">
-        {title}
-      </h1>
-      {subtitle ? (
-        <p className="text-muted-foreground mt-2 text-sm leading-relaxed text-pretty">
-          {subtitle}
-        </p>
-      ) : null}
+        <div
+          className="bg-primary text-primary-foreground ml-auto mt-0.5 inline-flex size-14 shrink-0 items-center justify-center rounded-2xl shadow-soft"
+          aria-hidden="true"
+        >
+          <Sprout className="size-7" strokeWidth={2.4} />
+        </div>
+      </div>
 
       <div className="mt-8 flex flex-1 flex-col">{children}</div>
 

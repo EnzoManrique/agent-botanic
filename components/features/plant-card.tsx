@@ -1,7 +1,7 @@
 "use client"
 
 import Image from "next/image"
-import { Sun, CloudSun, Moon } from "lucide-react"
+import { Sun, CloudSun, Moon, Leaf } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
 import { LOCATION_META, WATERING_MODE_META } from "@/lib/plant-meta"
@@ -67,23 +67,37 @@ export function PlantCard({
         className="flex flex-1 flex-col text-left rounded-3xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         aria-label={`Ver detalles de ${plant.alias}`}
       >
-        <div className="relative aspect-[4/3] overflow-hidden bg-secondary">
-          <Image
-            src={plant.imageUrl || "/placeholder.svg"}
-            alt={`Foto de ${plant.alias}, una ${plant.species}`}
-            fill
-            sizes="(max-width: 768px) 100vw, 33vw"
-            className="object-cover transition-transform duration-500 group-hover:scale-105"
-          />
+        {/* Banner compacto: en mobile usamos aspect-[16/9] (más finito tipo
+            "banner") y en pantallas grandes lo ampliamos a [4/3] que da más
+            presencia a la foto. Si no hay imagen mostramos un fallback con
+            gradient verde + icono — nunca queda un hueco gris vacío. */}
+        <div className="relative aspect-[16/9] sm:aspect-[4/3] overflow-hidden bg-gradient-to-br from-primary/15 to-primary/5">
+          {plant.imageUrl ? (
+            <Image
+              src={plant.imageUrl}
+              alt={`Foto de ${plant.alias}, una ${plant.species}`}
+              fill
+              sizes="(max-width: 768px) 100vw, 33vw"
+              className="object-cover transition-transform duration-500 group-hover:scale-105"
+              unoptimized={plant.imageUrl.startsWith("data:")}
+            />
+          ) : (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <Leaf
+                className="size-10 text-primary/40"
+                aria-hidden="true"
+              />
+            </div>
+          )}
           {needsWater ? (
-            <span className="absolute top-3 left-3 inline-flex items-center gap-1 rounded-full bg-accent px-2.5 py-1 text-[11px] font-semibold text-accent-foreground shadow-soft">
+            <span className="absolute top-2 left-2 inline-flex items-center gap-1 rounded-full bg-accent px-2 py-0.5 text-[10px] font-semibold text-accent-foreground shadow-soft">
               <CareIcon className="size-3" aria-hidden="true" />
               <span className="whitespace-nowrap">
                 {plant.wateringMode === "soil" ? "Toca regar" : careMeta.actionVerb}
               </span>
             </span>
           ) : null}
-          <span className="absolute right-3 bottom-3 inline-flex items-center gap-1 rounded-full bg-card/95 px-2.5 py-1 text-[11px] font-medium text-card-foreground shadow-soft">
+          <span className="absolute right-2 bottom-2 inline-flex items-center gap-1 rounded-full bg-card/95 px-2 py-0.5 text-[10px] font-medium text-card-foreground shadow-soft">
             <LightIcon className="size-3" aria-hidden="true" />
             <span className="whitespace-nowrap">{LIGHT_LABELS[plant.lightNeeds]}</span>
           </span>
