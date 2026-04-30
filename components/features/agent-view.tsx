@@ -2,7 +2,7 @@ import { Sparkles } from "lucide-react"
 import { ChatPanel } from "./chat-panel"
 import { ScreenHeader } from "@/components/mobile/screen-header"
 
-export function AgentView() {
+export function AgentView({ initialPrompt }: { initialPrompt?: string }) {
   return (
     <div className="flex flex-col">
       <ScreenHeader
@@ -11,7 +11,7 @@ export function AgentView() {
         title="Conversá con tu agente"
         subtitle="Pregunta sobre clima, riegos y cuidados."
       />
-      <ChatPanel />
+      <ChatPanel initialPrompt={initialPrompt} />
     </div>
   )
 }

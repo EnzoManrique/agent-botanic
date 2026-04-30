@@ -2,21 +2,44 @@
 
 import Link from "next/link"
 import Image from "next/image"
-import { Droplets, Leaf, Sparkles, ArrowRight, Camera, Settings } from "lucide-react"
+import {
+  Droplets,
+  Leaf,
+  Sparkles,
+  ArrowRight,
+  Camera,
+  Settings,
+  Snowflake,
+  Sun,
+  Wind,
+  AlertTriangle,
+} from "lucide-react"
 import { usePlantManager } from "@/lib/hooks/use-plant-manager"
 import { WeatherBanner } from "./weather-banner"
 import { ScreenHeader } from "@/components/mobile/screen-header"
 import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
 import type { Plant, WeatherAlert } from "@/lib/types"
+import type { ProactiveAdvice } from "@/lib/proactive-advisor"
 import { cn } from "@/lib/utils"
+
+const SECONDARY_ALERT_ICONS: Record<WeatherAlert["type"], React.ElementType> = {
+  zonda: Wind,
+  frost: Snowflake,
+  heatwave: Sun,
+  calm: Leaf,
+}
 
 export function HomeView({
   initialPlants,
   weather,
+  extraAlerts = [],
+  advice = null,
 }: {
   initialPlants: Plant[]
   weather: WeatherAlert
+  extraAlerts?: WeatherAlert[]
+  advice?: ProactiveAdvice | null
 }) {
   const { plants, needsWatering, waterPlant, isPending } =
     usePlantManager(initialPlants)
@@ -39,6 +62,12 @@ export function HomeView({
       />
 
       <WeatherBanner alert={weather} />
+
+      {extraAlerts.length > 0 ? (
+        <ExtraAlertsList alerts={extraAlerts} />
+      ) : null}
+
+      {advice ? <ProactiveAdviceCard advice={advice} /> : null}
 
       <section className="grid grid-cols-2 gap-3 px-5">
         <StatCard
@@ -125,6 +154,103 @@ export function HomeView({
         </Link>
       </section>
     </div>
+  )
+}
+
+/**
+ * Lista compacta de alertas secundarias bajo el banner principal.
+ * Si en el día hay Zonda + helada, queremos mostrar ambas pero sin que la
+ * pantalla se sienta saturada.
+ */
+function ExtraAlertsList({ alerts }: { alerts: WeatherAlert[] }) {
+  return (
+    <section className="px-5">
+      <p className="mb-2 text-xs font-semibold tracking-wide uppercase text-muted-foreground">
+        Otras alertas activas
+      </p>
+      <ul className="flex flex-col gap-2">
+        {alerts.map((a, i) => {
+          const Icon = SECONDARY_ALERT_ICONS[a.type] ?? AlertTriangle
+          return (
+            <li
+              key={`${a.type}-${i}`}
+              className="flex items-start gap-3 rounded-2xl border-2 border-border bg-card p-3 shadow-soft"
+            >
+              <span
+                aria-hidden="true"
+                className={cn(
+                  "flex size-9 shrink-0 items-center justify-center rounded-xl",
+                  a.severity === "high"
+                    ? "bg-accent text-accent-foreground"
+                    : "bg-secondary text-secondary-foreground",
+                )}
+              >
+                <Icon className="size-4" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold leading-tight">
+                  {a.title}
+                </p>
+                <p className="text-xs text-muted-foreground text-pretty">
+                  {a.description}
+                </p>
+              </div>
+            </li>
+          )
+        })}
+      </ul>
+    </section>
+  )
+}
+
+/**
+ * Card del "agente proactivo": cuando la alerta climática cruzada con el
+ * jardín del usuario amerita un aviso personalizado, lo mostramos acá con
+ * un CTA para llevar la conversación al chat del agente.
+ */
+function ProactiveAdviceCard({ advice }: { advice: ProactiveAdvice }) {
+  const isHigh = advice.severity === "high"
+  return (
+    <section className="px-5">
+      <article
+        className={cn(
+          "flex flex-col gap-3 rounded-3xl border-2 p-4 shadow-soft",
+          isHigh
+            ? "bg-accent/15 border-accent/50"
+            : "bg-primary/5 border-primary/30",
+        )}
+      >
+        <header className="flex items-start gap-3">
+          <span
+            aria-hidden="true"
+            className={cn(
+              "flex size-11 shrink-0 items-center justify-center rounded-2xl border-2",
+              isHigh
+                ? "border-accent/50 bg-accent text-accent-foreground"
+                : "border-primary/30 bg-primary text-primary-foreground",
+            )}
+          >
+            <Sparkles className="size-5" />
+          </span>
+          <div className="flex-1">
+            <p className="text-xs font-semibold tracking-wide uppercase text-muted-foreground">
+              El agente sugiere
+            </p>
+            <p className="font-serif text-base leading-tight font-semibold text-balance">
+              {advice.headline}
+            </p>
+          </div>
+        </header>
+        <p className="text-sm leading-relaxed text-pretty">{advice.message}</p>
+        <Link
+          href={`/agente?prompt=${encodeURIComponent(advice.chatPrompt)}`}
+          className="bg-card hover:bg-secondary/60 inline-flex items-center justify-center gap-2 rounded-2xl border-2 border-border px-4 py-2.5 text-sm font-semibold transition-colors"
+        >
+          <Sparkles className="size-4" aria-hidden="true" />
+          Hablarlo con el agente
+        </Link>
+      </article>
+    </section>
   )
 }
 

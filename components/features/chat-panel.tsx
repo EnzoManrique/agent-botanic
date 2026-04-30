@@ -20,14 +20,24 @@ const SUGGESTIONS = [
   "Tips para suculentas con sol intenso",
 ]
 
-export function ChatPanel() {
+export function ChatPanel({ initialPrompt }: { initialPrompt?: string }) {
   const [input, setInput] = useState("")
   const scrollRef = useRef<HTMLDivElement>(null)
+  const initialPromptSent = useRef(false)
   const { messages, sendMessage, status } = useChat({
     transport: new DefaultChatTransport({ api: "/api/chat" }),
   })
 
   const isStreaming = status === "streaming" || status === "submitted"
+
+  // Disparamos el prompt que viene por ?prompt=... una sola vez al montar.
+  // Sirve para los CTAs proactivos del home ("Hablarlo con el agente").
+  useEffect(() => {
+    if (initialPrompt && !initialPromptSent.current) {
+      initialPromptSent.current = true
+      sendMessage({ text: initialPrompt })
+    }
+  }, [initialPrompt, sendMessage])
 
   useEffect(() => {
     scrollRef.current?.scrollTo({
@@ -185,7 +195,8 @@ function MessageBubble({
 function ToolBadge({ part }: { part: any }) {
   const toolName = part.type.replace(/^tool-/, "")
   const labels: Record<string, string> = {
-    getWeatherAlerts: "Consultando clima de Mendoza",
+    getWeatherAlerts: "Consultando clima en vivo",
+    getWeatherForecast: "Pidiendo pronóstico de 3 días",
     listUserPlants: "Revisando tu jardín",
     checkWateringSchedule: "Calculando próximo riego",
   }

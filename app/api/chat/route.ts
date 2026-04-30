@@ -2,7 +2,8 @@ import { convertToModelMessages, streamText, tool, stepCountIs, type UIMessage }
 import { z } from "zod"
 import { auth } from "@/auth"
 import { getAllPlants } from "@/lib/db/plants"
-import { getMendozaWeatherAlert } from "@/lib/weather"
+import { getUserSettings } from "@/lib/db/settings"
+import { evaluateAlerts, getForecast } from "@/lib/weather"
 
 export const maxDuration = 30
 
@@ -15,7 +16,13 @@ export async function POST(req: Request) {
 
   const { messages }: { messages: UIMessage[] } = await req.json()
 
-  const plantsRaw = await getAllPlants(userEmail)
+  // Cargamos jardín + settings en paralelo: el system prompt necesita ambos
+  // para poder dar contexto local (ciudad, alertas activadas, plantas).
+  const [plantsRaw, settings] = await Promise.all([
+    getAllPlants(userEmail),
+    getUserSettings(userEmail),
+  ])
+
   const plants = plantsRaw.map((p) => ({
     id: p.id,
     alias: p.alias,
@@ -29,11 +36,16 @@ export async function POST(req: Request) {
       : "nunca",
   }))
 
+  const city = settings.location.city || "Mendoza, Argentina"
+  const alertPrefs = settings.location.alerts
+
   const system = `Sos "Secretary Botanic", un asistente experto en cuidado de plantas. Hablás en español rioplatense (vos, querés, regá), con tono cálido y didáctico, estilo "Mi Primera Encarta": claro, divertido y educativo.
 
 CONTEXTO DEL USUARIO:
-- Vive en Mendoza, Argentina (clima semiárido, sol intenso, viento Zonda, heladas tardías).
+- Vive en ${city} (si la ciudad es Mendoza, recordá que es clima semiárido con sol intenso, viento Zonda y heladas tardías).
 - Tiene ${plants.length} plantas registradas: ${JSON.stringify(plants)}
+- Alertas climáticas activadas en su perfil: ${JSON.stringify(alertPrefs)}.
+- Si una alerta está desactivada, NO la menciones de manera proactiva, salvo que el usuario la pregunte explícitamente.
 
 CAPACIDADES MULTIMODALES:
 - Tenés visión por computadora: cuando el usuario adjunte una foto, observá detenidamente forma de hoja, nervaduras, textura, color, tipo de tallo, presencia de espinas/flores, suelo y maceta antes de responder.
@@ -54,7 +66,8 @@ REGLA ANTI-CONFUSIÓN:
 - NUNCA confundas un Potus con una Albahaca: el Potus tiene hojas grandes acorazonadas brillantes y trepa; la Albahaca es una hierba baja con hojas pequeñas aromáticas. Si dudás entre ambos, pedí una foto del tallo o que el usuario huela una hoja.
 
 REGLAS DE HERRAMIENTAS:
-- Si el usuario pregunta por el clima, riesgos o si conviene regar hoy → USÁ getWeatherAlerts antes de responder.
+- Si el usuario pregunta por el clima, riesgos meteorológicos o si conviene regar hoy → USÁ getWeatherAlerts antes de responder. Devuelve datos REALES tomados de Open-Meteo.
+- Si el usuario quiere saber el pronóstico de los próximos días → USÁ getWeatherForecast.
 - Si el usuario pide ver sus plantas o un resumen → USÁ listUserPlants.
 - Si pregunta cuándo regar una planta puntual → USÁ checkWateringSchedule con el alias o id.
 - Después de usar herramientas, resumí en 2-4 líneas con consejos concretos y accionables.
@@ -73,13 +86,46 @@ ESTILO DE RESPUESTA:
     tools: {
       getWeatherAlerts: tool({
         description:
-          "Obtiene alertas climáticas actuales de Mendoza, Argentina (viento Zonda, heladas, olas de calor). Usar cuando el usuario pregunte por el clima o si conviene regar hoy.",
+          "Obtiene alertas climáticas REALES (Open-Meteo) para la ciudad del usuario. Detecta viento Zonda (ráfagas + baja humedad), heladas, ola de calor y granizo combinando datos del pronóstico con las preferencias activadas en el perfil. Usar cuando el usuario pregunte por el clima o si conviene regar hoy.",
         inputSchema: z.object({
           reason: z.string().describe("Por qué se está consultando el clima"),
         }),
         execute: async () => {
-          const alert = getMendozaWeatherAlert()
-          return alert
+          const forecast = await getForecast(city)
+          const alerts = evaluateAlerts(forecast, alertPrefs)
+          return {
+            location: forecast.location.label,
+            now: {
+              tempC: Math.round(forecast.current.tempC),
+              humidity: Math.round(forecast.current.humidity),
+              windKmh: Math.round(forecast.current.windKmh),
+            },
+            alerts,
+            preferencesUsed: alertPrefs,
+          }
+        },
+      }),
+      getWeatherForecast: tool({
+        description:
+          "Devuelve el pronóstico de los próximos 3 días para la ciudad del usuario: temperatura máxima/mínima, lluvia esperada, viento y humedad. Útil para planificar riegos y traslados de macetas.",
+        inputSchema: z.object({
+          reason: z.string().describe("Para qué se está pidiendo el forecast"),
+        }),
+        execute: async () => {
+          const forecast = await getForecast(city)
+          return {
+            location: forecast.location.label,
+            days: forecast.daily.map((d) => ({
+              date: d.date,
+              tempMaxC: Math.round(d.tempMaxC),
+              tempMinC: Math.round(d.tempMinC),
+              precipitationMm: Math.round(d.precipitationMm * 10) / 10,
+              windMaxKmh: Math.round(d.windMaxKmh),
+              windGustsMaxKmh: Math.round(d.windGustsMaxKmh),
+              humidityMin: Math.round(d.humidityMin),
+              weatherCode: d.weatherCode,
+            })),
+          }
         },
       }),
       listUserPlants: tool({
