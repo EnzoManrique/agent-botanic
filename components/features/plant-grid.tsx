@@ -10,11 +10,13 @@ export function PlantGrid({
   groupedByCategory,
   currentCategory,
   onWater,
+  onOpen,
   isPending,
 }: {
   groupedByCategory: Record<PlantCategory, Plant[]>
   currentCategory: PlantCategory
   onWater: (id: string) => void
+  onOpen: (plant: Plant) => void
   isPending?: boolean
 }) {
   const plants = groupedByCategory[currentCategory] ?? []
@@ -33,12 +35,19 @@ export function PlantGrid({
           </EmptyHeader>
         </Empty>
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        // grid auto-fill: una columna en mobile (~448px), dos cuando alcanza 280px por card.
+        <div
+          className="grid gap-4"
+          style={{
+            gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 240px), 1fr))",
+          }}
+        >
           {plants.map((p) => (
             <PlantCard
               key={p.id}
               plant={p}
               onWater={onWater}
+              onOpen={onOpen}
               isPending={isPending}
             />
           ))}

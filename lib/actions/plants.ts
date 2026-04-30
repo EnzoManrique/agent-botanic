@@ -5,6 +5,7 @@ import { z } from "zod"
 import { auth } from "@/auth"
 import {
   createPlant,
+  deletePlant as dbDeletePlant,
   getAllPlants as dbGetAllPlants,
   getPlantById as dbGetPlantById,
   markWatered,
@@ -190,6 +191,26 @@ export async function registerPlantAction(input: {
     console.error("[v0] Error registrando planta:", error)
     return { ok: false, error: "No pudimos registrar la planta." }
   }
+}
+
+/* -------------------------------------------------------------------------- */
+/* deletePlantAction — elimina una planta del jardín del usuario              */
+/* -------------------------------------------------------------------------- */
+
+export async function deletePlantAction(
+  plantId: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const session = await auth()
+  if (!session?.user?.email) {
+    return { ok: false, error: "Tenés que iniciar sesión." }
+  }
+  const ok = await dbDeletePlant(session.user.email, plantId)
+  if (!ok) {
+    return { ok: false, error: "No encontré esa planta en tu jardín." }
+  }
+  revalidatePath("/")
+  revalidatePath("/jardin")
+  return { ok: true }
 }
 
 /* -------------------------------------------------------------------------- */

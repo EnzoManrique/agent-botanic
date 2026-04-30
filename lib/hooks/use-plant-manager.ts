@@ -2,7 +2,13 @@
 
 import { useCallback, useMemo, useState, useTransition } from "react"
 import { toast } from "sonner"
-import { registerPlantAction, waterPlantAction } from "@/lib/actions/plants"
+import {
+  deletePlantAction,
+  registerPlantAction,
+  updatePlantDetails as updatePlantDetailsAction,
+  waterPlantAction,
+  type PlantDetailsPatch,
+} from "@/lib/actions/plants"
 import { ALL_CATEGORIES, WATERING_MODE_META } from "@/lib/plant-meta"
 import type { Plant, PlantCategory, PlantIdentification } from "@/lib/types"
 
@@ -40,6 +46,45 @@ export function usePlantManager(initialPlants: Plant[]) {
     [],
   )
 
+  /** Edita una planta existente y refleja el resultado en el state local. */
+  const editPlant = useCallback(
+    async (
+      id: string,
+      patch: PlantDetailsPatch,
+    ): Promise<{ ok: boolean; error?: string }> => {
+      const res = await updatePlantDetailsAction(id, patch)
+      if (res.ok && res.plant) {
+        setPlants((prev) => prev.map((p) => (p.id === id ? res.plant! : p)))
+        toast.success("Cambios guardados", {
+          description: `${res.plant.alias} se actualizó correctamente.`,
+        })
+        return { ok: true }
+      }
+      toast.error(res.error ?? "No pude guardar los cambios")
+      return { ok: false, error: res.error }
+    },
+    [],
+  )
+
+  /** Borra una planta. Optimista: la sacamos del state apenas confirma el server. */
+  const removePlant = useCallback(
+    async (id: string): Promise<{ ok: boolean; error?: string }> => {
+      const target = plants.find((p) => p.id === id)
+      const res = await deletePlantAction(id)
+      if (res.ok) {
+        setPlants((prev) => prev.filter((p) => p.id !== id))
+        toast.success(
+          target ? `Eliminaste a ${target.alias}` : "Planta eliminada",
+          { description: "Se borró del jardín y de tu historial." },
+        )
+        return { ok: true }
+      }
+      toast.error(res.error ?? "No pude borrar la planta")
+      return { ok: false, error: res.error }
+    },
+    [plants],
+  )
+
   const groupedByCategory = useMemo(() => {
     const groups = ALL_CATEGORIES.reduce(
       (acc, cat) => {
@@ -49,7 +94,6 @@ export function usePlantManager(initialPlants: Plant[]) {
       {} as Record<PlantCategory, Plant[]>,
     )
     for (const p of plants) {
-      // Si llegara un valor inválido, lo agrupamos en interior como fallback.
       const cat = (groups[p.category] ? p.category : "interior") as PlantCategory
       groups[cat].push(p)
     }
@@ -70,6 +114,8 @@ export function usePlantManager(initialPlants: Plant[]) {
     needsWatering,
     waterPlant,
     registerPlant,
+    editPlant,
+    removePlant,
     isPending,
   }
 }

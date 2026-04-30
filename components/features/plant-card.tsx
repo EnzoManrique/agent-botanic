@@ -28,10 +28,12 @@ function daysSince(timestamp: number | null): number | null {
 export function PlantCard({
   plant,
   onWater,
+  onOpen,
   isPending,
 }: {
   plant: Plant
   onWater: (id: string) => void
+  onOpen: (plant: Plant) => void
   isPending?: boolean
 }) {
   const days = daysSince(plant.lastWateredAt)
@@ -42,12 +44,12 @@ export function PlantCard({
 
   const wateringStatus =
     days === null
-      ? "Sin cuidado todavía"
+      ? "Sin cuidado"
       : days === 0
-        ? "Cuidada hoy"
+        ? "Hoy"
         : days === 1
           ? "Hace 1 día"
-          : `Hace ${days} días`
+          : `Hace ${days} d`
 
   return (
     <article
@@ -56,65 +58,89 @@ export function PlantCard({
         needsWater ? "border-accent/60" : "border-border",
       )}
     >
-      <div className="relative aspect-[4/3] overflow-hidden bg-secondary">
-        <Image
-          src={plant.imageUrl || "/placeholder.svg"}
-          alt={`Foto de ${plant.alias}, una ${plant.species}`}
-          fill
-          sizes="(max-width: 768px) 100vw, 33vw"
-          className="object-cover transition-transform duration-500 group-hover:scale-105"
-        />
-        {needsWater ? (
-          <span className="absolute top-3 left-3 inline-flex items-center gap-1 rounded-full bg-accent px-3 py-1 text-xs font-semibold text-accent-foreground shadow-soft">
-            <CareIcon className="size-3.5" aria-hidden="true" />
-            {plant.wateringMode === "soil" ? "¡Toca regar!" : `¡${careMeta.actionVerb}!`}
+      {/* Toda la zona de info es un botón que abre el detalle */}
+      <button
+        type="button"
+        onClick={() => onOpen(plant)}
+        className="flex flex-1 flex-col text-left rounded-3xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        aria-label={`Ver detalles de ${plant.alias}`}
+      >
+        <div className="relative aspect-[4/3] overflow-hidden bg-secondary">
+          <Image
+            src={plant.imageUrl || "/placeholder.svg"}
+            alt={`Foto de ${plant.alias}, una ${plant.species}`}
+            fill
+            sizes="(max-width: 768px) 100vw, 33vw"
+            className="object-cover transition-transform duration-500 group-hover:scale-105"
+          />
+          {needsWater ? (
+            <span className="absolute top-3 left-3 inline-flex items-center gap-1 rounded-full bg-accent px-2.5 py-1 text-[11px] font-semibold text-accent-foreground shadow-soft">
+              <CareIcon className="size-3" aria-hidden="true" />
+              <span className="whitespace-nowrap">
+                {plant.wateringMode === "soil" ? "Toca regar" : careMeta.actionVerb}
+              </span>
+            </span>
+          ) : null}
+          <span className="absolute right-3 bottom-3 inline-flex items-center gap-1 rounded-full bg-card/95 px-2.5 py-1 text-[11px] font-medium text-card-foreground shadow-soft">
+            <LightIcon className="size-3" aria-hidden="true" />
+            <span className="whitespace-nowrap">{LIGHT_LABELS[plant.lightNeeds]}</span>
           </span>
-        ) : null}
-        <span className="absolute right-3 bottom-3 inline-flex items-center gap-1.5 rounded-full bg-card/95 px-3 py-1 text-xs font-medium text-card-foreground shadow-soft">
-          <LightIcon className="size-3.5" aria-hidden="true" />
-          {LIGHT_LABELS[plant.lightNeeds]}
-        </span>
-      </div>
-
-      <div className="flex flex-1 flex-col gap-3 p-4">
-        <div>
-          <h3 className="font-serif text-xl leading-tight font-semibold text-pretty">
-            {plant.alias}
-          </h3>
-          <p className="text-sm text-muted-foreground italic">
-            {plant.species} · <span className="not-italic">{plant.scientificName}</span>
-          </p>
         </div>
 
-        <dl className="grid grid-cols-2 gap-2 text-xs">
-          <div className="rounded-xl bg-secondary/70 px-3 py-2">
-            <dt className="text-muted-foreground">
-              {plant.wateringMode === "soil" ? "Último riego" : "Último cuidado"}
-            </dt>
-            <dd className="mt-0.5 font-semibold">{wateringStatus}</dd>
+        <div className="flex flex-1 flex-col gap-2 p-4">
+          <div className="min-w-0">
+            <h3 className="truncate font-serif text-xl leading-tight font-semibold">
+              {plant.alias}
+            </h3>
+            <p className="truncate text-sm text-muted-foreground italic">
+              {plant.species}
+              {plant.scientificName ? (
+                <span className="not-italic"> · {plant.scientificName}</span>
+              ) : null}
+            </p>
           </div>
-          <div className="rounded-xl bg-secondary/70 px-3 py-2">
-            <dt className="text-muted-foreground">{careMeta.actionVerb}</dt>
-            <dd className="mt-0.5 font-semibold">cada {plant.wateringFrequencyDays} d</dd>
-          </div>
-        </dl>
 
+          {/* Stats en flex-row con whitespace-nowrap: nunca se rompen en columnas finitas */}
+          <dl className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+            <div className="inline-flex items-center gap-1">
+              <dt className="sr-only">Último cuidado</dt>
+              <CareIcon className="size-3.5 text-foreground/60" aria-hidden="true" />
+              <dd className="font-medium text-foreground whitespace-nowrap">
+                {wateringStatus}
+              </dd>
+            </div>
+            <span className="text-border">•</span>
+            <div className="inline-flex items-center gap-1">
+              <dt className="sr-only">Frecuencia</dt>
+              <dd className="whitespace-nowrap">
+                cada {plant.wateringFrequencyDays} d
+              </dd>
+            </div>
+          </dl>
+        </div>
+      </button>
+
+      <div className="px-4 pb-4">
         <Button
-          onClick={() => onWater(plant.id)}
+          onClick={(e) => {
+            e.stopPropagation()
+            onWater(plant.id)
+          }}
           disabled={isPending}
           variant={needsWater ? "default" : "secondary"}
-          className="mt-auto rounded-2xl font-semibold"
+          size="sm"
+          className="w-full rounded-2xl font-semibold"
           aria-label={`${careMeta.actionVerb} ${plant.alias}`}
         >
           {isPending ? (
             <>
               <Spinner className="size-4" />
-              Registrando...
+              <span className="truncate">Registrando...</span>
             </>
           ) : (
             <>
               <CareIcon className="size-4" aria-hidden="true" />
-              {careMeta.actionVerb}
+              <span className="truncate">{careMeta.actionVerb}</span>
             </>
           )}
         </Button>

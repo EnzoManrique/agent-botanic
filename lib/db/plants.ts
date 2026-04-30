@@ -187,6 +187,21 @@ export async function updatePlantDetails(
   return rows[0] ? rowToPlant(rows[0]) : undefined
 }
 
+/** Borra una planta validando que pertenezca al usuario. */
+export async function deletePlant(
+  userEmail: string,
+  plantId: string,
+): Promise<boolean> {
+  const numericId = Number(plantId)
+  if (!Number.isInteger(numericId)) return false
+  const rows = (await sql`
+    DELETE FROM plants
+    WHERE id = ${numericId} AND user_email = ${userEmail}
+    RETURNING id
+  `) as { id: number }[]
+  return rows.length > 0
+}
+
 /** Marca un riego: setea last_watered_at = NOW() y devuelve la planta. */
 export async function markWatered(
   userEmail: string,
