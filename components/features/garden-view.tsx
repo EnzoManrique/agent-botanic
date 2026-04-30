@@ -7,6 +7,9 @@ import { PlantGrid } from "./plant-grid"
 import { PlantDetailsDialog } from "./plant-details-dialog"
 import type { Plant, PlantCategory } from "@/lib/types"
 
+// El filtro acepta una categoría específica o "all" (mostrar todo el jardín).
+export type GardenFilter = PlantCategory | "all"
+
 export function GardenView({ initialPlants }: { initialPlants: Plant[] }) {
   const {
     plants,
@@ -17,10 +20,9 @@ export function GardenView({ initialPlants }: { initialPlants: Plant[] }) {
     isPending,
   } = usePlantManager(initialPlants)
 
-  const [currentCategory, setCurrentCategory] = useState<PlantCategory>(() => {
-    const categories = Object.keys(groupedByCategory) as PlantCategory[]
-    return categories.find((c) => groupedByCategory[c].length > 0) ?? "interior"
-  })
+  // Arrancamos en "Todas" así el usuario ve TODO el jardín de una.
+  // Si quiere filtrar por categoría, está a un tap.
+  const [currentCategory, setCurrentCategory] = useState<GardenFilter>("all")
 
   const [selectedPlantId, setSelectedPlantId] = useState<string | null>(null)
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -45,10 +47,12 @@ export function GardenView({ initialPlants }: { initialPlants: Plant[] }) {
     <div className="flex flex-col">
       <CategoryNavbar
         groupedByCategory={categoryTotals}
+        totalPlants={plants.length}
         defaultTab={currentCategory}
         onTabChange={setCurrentCategory}
       />
       <PlantGrid
+        plants={plants}
         groupedByCategory={groupedByCategory}
         currentCategory={currentCategory}
         onWater={waterPlant}
