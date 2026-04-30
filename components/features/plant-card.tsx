@@ -148,29 +148,57 @@ export function PlantCard({
       </button>
 
       <div className="px-4 pb-4">
-        <Button
-          onClick={(e) => {
-            e.stopPropagation()
-            onWater(plant.id)
-          }}
-          disabled={isPending}
-          variant={needsWater ? "default" : "secondary"}
-          size="sm"
-          className="w-full rounded-2xl font-semibold"
-          aria-label={`${careMeta.actionVerb} ${plant.alias}`}
-        >
-          {isPending ? (
-            <>
-              <Spinner className="size-4" />
-              <span className="truncate">Registrando...</span>
-            </>
-          ) : (
-            <>
-              <CareIcon className="size-4" aria-hidden="true" />
-              <span className="truncate">{careMeta.actionVerb}</span>
-            </>
-          )}
-        </Button>
+        {/* El botón queda deshabilitado entre ciclos: una vez registrado el
+            cuidado, no se puede volver a tocar hasta que pasen los días de
+            frecuencia de la planta. Esto evita registros duplicados ("le di
+            agua hoy y volví a tocar" rompía el historial) y comunica visual
+            mente cuánto falta para la próxima vez con un texto claro tipo
+            "En 6 días". */}
+        {(() => {
+          const daysUntilNext =
+            days === null
+              ? 0
+              : Math.max(0, plant.wateringFrequencyDays - days)
+          const disabled = isPending || !needsWater
+
+          let label: string
+          if (isPending) {
+            label = "Registrando..."
+          } else if (needsWater) {
+            label = careMeta.actionVerb
+          } else if (daysUntilNext === 1) {
+            label = "Mañana"
+          } else {
+            label = `En ${daysUntilNext} días`
+          }
+
+          return (
+            <Button
+              onClick={(e) => {
+                e.stopPropagation()
+                onWater(plant.id)
+              }}
+              disabled={disabled}
+              variant={needsWater ? "default" : "secondary"}
+              size="sm"
+              className="w-full rounded-2xl font-semibold disabled:opacity-100"
+              aria-label={
+                needsWater
+                  ? `${careMeta.actionVerb} ${plant.alias}`
+                  : `Próximo cuidado de ${plant.alias} en ${daysUntilNext} ${
+                      daysUntilNext === 1 ? "día" : "días"
+                    }`
+              }
+            >
+              {isPending ? (
+                <Spinner className="size-4" />
+              ) : (
+                <CareIcon className="size-4" aria-hidden="true" />
+              )}
+              <span className="truncate">{label}</span>
+            </Button>
+          )
+        })()}
       </div>
     </article>
   )
