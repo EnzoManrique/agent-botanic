@@ -1,6 +1,11 @@
 import "server-only"
 import { sql } from "@/lib/db"
-import type { Plant, PlantCategory, WateringMode } from "@/lib/types"
+import type {
+  Plant,
+  PlantCategory,
+  PlantLocation,
+  WateringMode,
+} from "@/lib/types"
 
 /**
  * Capa de datos para la tabla `plants`.
@@ -17,6 +22,7 @@ type PlantRow = {
   watering_frequency_days: number
   watering_mode: string | null
   category: string
+  location: string | null
   light_needs: string | null
   notes: string | null
   image_url: string | null
@@ -41,6 +47,12 @@ const VALID_CATEGORIES: PlantCategory[] = [
 
 const VALID_LIGHT: Plant["lightNeeds"][] = ["alta", "media", "baja"]
 const VALID_MODES: WateringMode[] = ["soil", "water", "hydroponic", "mist"]
+const VALID_LOCATIONS: PlantLocation[] = [
+  "interior",
+  "cubierto",
+  "exterior",
+  "invernadero",
+]
 
 function toMillis(value: Date | string | null): number | null {
   if (value === null) return null
@@ -58,12 +70,16 @@ function rowToPlant(row: PlantRow): Plant {
   const wateringMode = VALID_MODES.includes(row.watering_mode as WateringMode)
     ? (row.watering_mode as WateringMode)
     : "soil"
+  const location = VALID_LOCATIONS.includes(row.location as PlantLocation)
+    ? (row.location as PlantLocation)
+    : "interior"
   return {
     id: String(row.id),
     alias: row.nickname,
     species: row.species,
     scientificName: row.scientific_name ?? "",
     category,
+    location,
     imageUrl: row.image_url ?? "/plants/monstera.jpg",
     wateringFrequencyDays: row.watering_frequency_days,
     wateringMode,
@@ -78,8 +94,8 @@ function rowToPlant(row: PlantRow): Plant {
 export async function getAllPlants(userEmail: string): Promise<Plant[]> {
   const rows = (await sql`
     SELECT id, user_email, nickname, species, scientific_name,
-           watering_frequency_days, watering_mode, category, light_needs, notes,
-           image_url, created_at, last_watered_at
+           watering_frequency_days, watering_mode, category, location, light_needs,
+           notes, image_url, created_at, last_watered_at
     FROM plants
     WHERE user_email = ${userEmail}
     ORDER BY created_at DESC
@@ -96,8 +112,8 @@ export async function getPlantById(
   if (!Number.isInteger(numericId)) return undefined
   const rows = (await sql`
     SELECT id, user_email, nickname, species, scientific_name,
-           watering_frequency_days, watering_mode, category, light_needs, notes,
-           image_url, created_at, last_watered_at
+           watering_frequency_days, watering_mode, category, location, light_needs,
+           notes, image_url, created_at, last_watered_at
     FROM plants
     WHERE id = ${numericId} AND user_email = ${userEmail}
     LIMIT 1
@@ -110,6 +126,7 @@ export interface CreatePlantInput {
   species: string
   scientificName: string
   category: PlantCategory
+  location: PlantLocation
   wateringFrequencyDays: number
   wateringMode: WateringMode
   lightNeeds: Plant["lightNeeds"]
@@ -124,7 +141,8 @@ export async function createPlant(
   const rows = (await sql`
     INSERT INTO plants (
       user_email, nickname, species, scientific_name,
-      watering_frequency_days, watering_mode, category, light_needs, notes, image_url
+      watering_frequency_days, watering_mode, category, location, light_needs,
+      notes, image_url
     ) VALUES (
       ${userEmail},
       ${input.alias},
@@ -133,13 +151,14 @@ export async function createPlant(
       ${input.wateringFrequencyDays},
       ${input.wateringMode},
       ${input.category},
+      ${input.location},
       ${input.lightNeeds},
       ${input.notes ?? null},
       ${input.imageUrl ?? null}
     )
     RETURNING id, user_email, nickname, species, scientific_name,
-              watering_frequency_days, watering_mode, category, light_needs, notes,
-              image_url, created_at, last_watered_at
+              watering_frequency_days, watering_mode, category, location, light_needs,
+              notes, image_url, created_at, last_watered_at
   `) as PlantRow[]
   return rowToPlant(rows[0])
 }
@@ -149,6 +168,7 @@ export interface UpdatePlantPatch {
   species?: string
   scientificName?: string
   category?: PlantCategory
+  location?: PlantLocation
   wateringFrequencyDays?: number
   wateringMode?: WateringMode
   lightNeeds?: Plant["lightNeeds"]
@@ -174,6 +194,7 @@ export async function updatePlantDetails(
         species = COALESCE(${patch.species ?? null}, species),
         scientific_name = COALESCE(${patch.scientificName ?? null}, scientific_name),
         category = COALESCE(${patch.category ?? null}, category),
+        location = COALESCE(${patch.location ?? null}, location),
         watering_frequency_days = COALESCE(${patch.wateringFrequencyDays ?? null}, watering_frequency_days),
         watering_mode = COALESCE(${patch.wateringMode ?? null}, watering_mode),
         light_needs = COALESCE(${patch.lightNeeds ?? null}, light_needs),
@@ -181,8 +202,8 @@ export async function updatePlantDetails(
         image_url = COALESCE(${patch.imageUrl ?? null}, image_url)
     WHERE id = ${numericId} AND user_email = ${userEmail}
     RETURNING id, user_email, nickname, species, scientific_name,
-              watering_frequency_days, watering_mode, category, light_needs, notes,
-              image_url, created_at, last_watered_at
+              watering_frequency_days, watering_mode, category, location, light_needs,
+              notes, image_url, created_at, last_watered_at
   `) as PlantRow[]
   return rows[0] ? rowToPlant(rows[0]) : undefined
 }
@@ -214,8 +235,8 @@ export async function markWatered(
     SET last_watered_at = CURRENT_TIMESTAMP
     WHERE id = ${numericId} AND user_email = ${userEmail}
     RETURNING id, user_email, nickname, species, scientific_name,
-              watering_frequency_days, watering_mode, category, light_needs, notes,
-              image_url, created_at, last_watered_at
+              watering_frequency_days, watering_mode, category, location, light_needs,
+              notes, image_url, created_at, last_watered_at
   `) as PlantRow[]
   return rows[0] ? rowToPlant(rows[0]) : undefined
 }

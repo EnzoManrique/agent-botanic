@@ -4,7 +4,7 @@ import Image from "next/image"
 import { Sun, CloudSun, Moon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
-import { WATERING_MODE_META } from "@/lib/plant-meta"
+import { LOCATION_META, WATERING_MODE_META } from "@/lib/plant-meta"
 import type { Plant } from "@/lib/types"
 import { cn } from "@/lib/utils"
 
@@ -41,6 +41,8 @@ export function PlantCard({
   const LightIcon = LIGHT_ICONS[plant.lightNeeds]
   const careMeta = WATERING_MODE_META[plant.wateringMode]
   const CareIcon = careMeta.icon
+  const locationMeta = LOCATION_META[plant.location]
+  const LocationIcon = locationMeta.icon
 
   const wateringStatus =
     days === null
@@ -115,6 +117,15 @@ export function PlantCard({
               <dd className="whitespace-nowrap">
                 cada {plant.wateringFrequencyDays} d
               </dd>
+            </div>
+            <span className="text-border">•</span>
+            <div className="inline-flex items-center gap-1">
+              <dt className="sr-only">Ubicación</dt>
+              <LocationIcon
+                className="size-3.5 text-foreground/60"
+                aria-hidden="true"
+              />
+              <dd className="whitespace-nowrap">{locationMeta.shortLabel}</dd>
             </div>
           </dl>
         </div>

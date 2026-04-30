@@ -25,39 +25,73 @@ export interface ProactiveAdvice {
   chatPrompt: string
 }
 
-const OUTDOOR_CATEGORIES = new Set([
-  "exterior",
-  "comestible",
-  "floracion",
-  "arbol",
-])
-
-const SUCCULENT_LIKE = new Set(["suculenta"])
-
 /**
- * Heurísticas de qué planta corre riesgo según el tipo de alerta:
- *  - Zonda      : todo lo de exterior y todas las epífitas (se secan rapidísimo).
- *  - Frost      : suculentas, comestibles, flores y exterior.
- *  - Heatwave   : todo lo que esté al sol (exterior + comestibles + tropicales delicadas).
- *  - Granizo    : exterior y comestibles, las hojas grandes son las que más sufren.
+ * Heurísticas de qué planta corre riesgo según el tipo de alerta, ahora
+ * basadas en la UBICACIÓN FÍSICA de la planta (no en su categoría botánica).
+ *
+ *  - zonda    : siente viento → exterior + cubierto + invernadero (filtra interior).
+ *  - frost    : siente temperatura → exterior + cubierto + invernadero (interior se salva).
+ *  - heatwave : siente temperatura → exterior + cubierto + invernadero.
+ *  - hail     : sólo lo que está EXPUESTO al cielo abierto → exterior.
+ *
+ * Dentro de cada conjunto aplico filtros adicionales por sensibilidad
+ * botánica para no marcar como riesgo cualquier cosa al pedo (ej: una rosa
+ * a una helada le da igual; una albahaca se muere).
  */
 function plantsAffected(plants: Plant[], type: WeatherAlert["type"]): Plant[] {
+  // Step 1: filtro por exposición física.
+  let exposed: Plant[] = []
   switch (type) {
     case "zonda":
-      return plants.filter(
-        (p) => OUTDOOR_CATEGORIES.has(p.category) || p.category === "epifita",
+    case "frost":
+    case "heatwave":
+      exposed = plants.filter(
+        (p) => p.location === "exterior" || p.location === "cubierto",
+      )
+      break
+    case "hail":
+      // Granizo SOLO afecta a las que están al cielo abierto.
+      exposed = plants.filter((p) => p.location === "exterior")
+      break
+    default:
+      return []
+  }
+
+  // Step 2: filtro por sensibilidad botánica.
+  switch (type) {
+    case "zonda":
+      // Viento seco: epífitas se secan en horas; suculentas en macetas chicas
+      // se vuelan; hojas grandes (tropicales) se rompen.
+      return exposed.filter(
+        (p) =>
+          p.category === "epifita" ||
+          p.category === "tropical" ||
+          p.category === "suculenta" ||
+          p.category === "comestible" ||
+          p.category === "floracion",
       )
     case "frost":
-      return plants.filter(
+      // Heladas: tropicales, comestibles tiernas y suculentas no aclimatadas.
+      return exposed.filter(
         (p) =>
-          OUTDOOR_CATEGORIES.has(p.category) ||
-          SUCCULENT_LIKE.has(p.category) ||
-          p.category === "tropical",
+          p.category === "tropical" ||
+          p.category === "comestible" ||
+          p.category === "suculenta" ||
+          p.category === "floracion" ||
+          p.category === "epifita",
       )
     case "heatwave":
-      return plants.filter(
-        (p) => OUTDOOR_CATEGORIES.has(p.category) || p.category === "tropical",
+      // Olas de calor: tropicales y comestibles sufren primero.
+      return exposed.filter(
+        (p) =>
+          p.category === "tropical" ||
+          p.category === "comestible" ||
+          p.category === "floracion" ||
+          p.category === "interior", // tropicales típicas de interior puestas afuera
       )
+    case "hail":
+      // Granizo arruina hojas grandes y tallos tiernos sin discriminar mucho.
+      return exposed
     default:
       return []
   }
@@ -97,19 +131,36 @@ export function buildProactiveAdvice(
 
   switch (trigger.type) {
     case "zonda":
-      headline = `Viene Zonda: protegé ${sampleStr}.`
-      message = `${affected.length} ${affected.length === 1 ? "planta tuya está" : "plantas tuyas están"} en riesgo de deshidratarse con las ráfagas secas. ${trigger.recommendation}`
+      headline =
+        affected.length > 0
+          ? `Viene Zonda: protegé ${sampleStr}.`
+          : `Viene Zonda. Asegurá tus plantas.`
+      message = `${affected.length === 0 ? "Tus plantas en exterior están" : `${affected.length} ${affected.length === 1 ? "planta tuya está" : "plantas tuyas están"}`} en riesgo de deshidratarse con las ráfagas secas. ${trigger.recommendation}`
       chatPrompt = `Viene Zonda en ${trigger.location}. ¿Cómo protejo a ${sampleStr}?`
       break
     case "frost":
-      headline = `Helada en camino: cubrí ${sampleStr}.`
-      message = `${affected.length} ${affected.length === 1 ? "planta sensible al frío te queda" : "plantas sensibles al frío te quedan"} sin abrigo. ${trigger.recommendation}`
+      headline =
+        affected.length > 0
+          ? `Helada en camino: cubrí ${sampleStr}.`
+          : `Helada esta noche. Cuidado con tus plantas afuera.`
+      message = `${affected.length === 0 ? "Las plantas que tengas afuera" : `${affected.length} ${affected.length === 1 ? "planta sensible al frío te queda" : "plantas sensibles al frío te quedan"}`} sin abrigo. ${trigger.recommendation}`
       chatPrompt = `Va a haber helada esta noche. ¿Qué hago con ${sampleStr}?`
       break
     case "heatwave":
-      headline = `Día caluroso: regá temprano a ${sampleStr}.`
-      message = `${affected.length} ${affected.length === 1 ? "planta puede sufrir" : "plantas pueden sufrir"} con la máxima prevista. ${trigger.recommendation}`
+      headline =
+        affected.length > 0
+          ? `Día caluroso: regá temprano a ${sampleStr}.`
+          : `Día muy caluroso. Cuidado con tus plantas afuera.`
+      message = `${affected.length === 0 ? "Las plantas en cubierto y exterior" : `${affected.length} ${affected.length === 1 ? "planta puede sufrir" : "plantas pueden sufrir"}`} con la máxima prevista. ${trigger.recommendation}`
       chatPrompt = `Hoy hace mucho calor. ¿Cuándo y cómo riego a ${sampleStr}?`
+      break
+    case "hail":
+      headline =
+        affected.length > 0
+          ? `Granizo: metelas adentro a ${sampleStr}.`
+          : `Posible granizo en la zona.`
+      message = `${affected.length === 0 ? "Si tenés plantas afuera" : `${affected.length} ${affected.length === 1 ? "planta tuya está" : "plantas tuyas están"} a la intemperie y`} pueden romperse con el granizo. ${trigger.recommendation}`
+      chatPrompt = `Hay alerta de granizo. ¿Cómo protejo a ${sampleStr}?`
       break
     default:
       headline = trigger.title

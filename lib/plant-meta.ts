@@ -15,9 +15,12 @@ import {
   Droplets,
   Sparkles,
   Sun,
+  Home,
+  Tent,
+  Warehouse,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
-import type { PlantCategory, WateringMode } from "@/lib/types"
+import type { PlantCategory, PlantLocation, WateringMode } from "@/lib/types"
 
 /* -------------------------------------------------------------------------- */
 /* Categorías                                                                 */
@@ -163,3 +166,55 @@ export const LIGHT_OPTIONS: {
   { value: "media", label: "Media (luz indirecta)", icon: Leaf },
   { value: "alta", label: "Alta (sol directo)", icon: Sun },
 ]
+
+/* -------------------------------------------------------------------------- */
+/* Ubicación física (importa para alertas climáticas)                          */
+/* -------------------------------------------------------------------------- */
+
+export interface LocationMeta {
+  label: string
+  shortLabel: string
+  icon: LucideIcon
+  description: string
+  /** Si recibe granizo, lluvia y viento directos */
+  isExposed: boolean
+  /** Si recibe temperatura/viento (aún si está techado) */
+  feelsWeather: boolean
+}
+
+export const LOCATION_META: Record<PlantLocation, LocationMeta> = {
+  interior: {
+    label: "Interior",
+    shortLabel: "Adentro",
+    icon: Home,
+    description: "Adentro de tu casa. No le pega clima.",
+    isExposed: false,
+    feelsWeather: false,
+  },
+  cubierto: {
+    label: "Cubierto",
+    shortLabel: "Cubierto",
+    icon: Tent,
+    description: "Galería, balcón techado, patio cubierto. Le pega viento y temperatura, no granizo.",
+    isExposed: false,
+    feelsWeather: true,
+  },
+  exterior: {
+    label: "Exterior",
+    shortLabel: "Afuera",
+    icon: Sun,
+    description: "A la intemperie. Recibe sol, viento, granizo y lluvia.",
+    isExposed: true,
+    feelsWeather: true,
+  },
+  invernadero: {
+    label: "Invernadero",
+    shortLabel: "Invernadero",
+    icon: Warehouse,
+    description: "Protegida del clima al aire libre.",
+    isExposed: false,
+    feelsWeather: false,
+  },
+}
+
+export const ALL_LOCATIONS = Object.keys(LOCATION_META) as PlantLocation[]

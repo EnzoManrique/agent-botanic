@@ -19,6 +19,7 @@ import type {
   Plant,
   PlantCategory,
   PlantIdentification,
+  PlantLocation,
   WateringMode,
 } from "@/lib/types"
 
@@ -84,6 +85,7 @@ export interface PlantDetailsPatch {
   species?: string
   scientificName?: string
   category?: PlantCategory
+  location?: PlantLocation
   wateringFrequencyDays?: number
   wateringMode?: WateringMode
   lightNeeds?: "alta" | "media" | "baja"
@@ -110,6 +112,7 @@ export async function updatePlantDetails(
     species: patch.species?.trim() || undefined,
     scientificName: patch.scientificName?.trim() || undefined,
     category: patch.category,
+    location: patch.location,
     wateringFrequencyDays: cleanWatering,
     wateringMode: patch.wateringMode,
     lightNeeds: patch.lightNeeds,
@@ -167,6 +170,11 @@ export async function waterPlantAction(plantId: string): Promise<{
 export async function registerPlantAction(input: {
   alias: string
   identification: PlantIdentification
+  /**
+   * Ubicación física confirmada por el usuario en el flujo de scan.
+   * Si no viene, caemos al `suggestedLocation` que dio Gemini.
+   */
+  location?: PlantLocation
   imageUrl?: string
 }): Promise<{ ok: true; plant: Plant } | { ok: false; error: string }> {
   const session = await auth()
@@ -180,6 +188,7 @@ export async function registerPlantAction(input: {
       species: input.identification.species,
       scientificName: input.identification.scientificName,
       category: input.identification.category,
+      location: input.location ?? input.identification.suggestedLocation,
       wateringFrequencyDays: input.identification.wateringFrequencyDays,
       wateringMode: input.identification.wateringMode,
       lightNeeds: input.identification.lightNeeds,
@@ -268,6 +277,11 @@ const IdentificationSchema = z.object({
     ])
     .describe(
       "Categoría más representativa. interior=plantas decorativas de interior; tropical=hojas grandes de selva (monstera, anthurium); trepadora=potus, hiedra, philodendron; suculenta=carnosas y cactus; epifita=orquídeas, tillandsias; acuatica=vive en agua; hidroponia=cultivo NFT/DWC; arbol=árboles y arbustos leñosos; bonsai=miniaturizado; floracion=ornamental por flor (rosa); comestible=aromáticas/hortalizas; exterior=jardín mediterráneo.",
+    ),
+  suggestedLocation: z
+    .enum(["interior", "cubierto", "exterior", "invernadero"])
+    .describe(
+      "Ubicación FÍSICA recomendada según hábitat típico de la especie en el clima semiárido de Mendoza (frío en invierno, mucho sol y viento). interior=adentro de casa (potus, monstera, sansevieria, ZZ, orquídeas, suculentas si son chicas); cubierto=galería/balcón techado (lavanda, cactus en maceta, cítricos chicos); exterior=jardín a la intemperie (rosales, lavanda, árboles, hortalizas robustas); invernadero=protegida pero al aire libre (hidroponias, tropicales sensibles). Para Mendoza preferí 'cubierto' antes que 'exterior' cuando la planta es semi-rústica, porque en julio puede helar.",
     ),
   wateringFrequencyDays: z
     .number()

@@ -43,12 +43,15 @@ import {
 import { Spinner } from "@/components/ui/spinner"
 import {
   ALL_CATEGORIES,
+  ALL_LOCATIONS,
   CATEGORY_META,
+  LOCATION_META,
   WATERING_MODE_META,
 } from "@/lib/plant-meta"
 import type {
   Plant,
   PlantCategory,
+  PlantLocation,
   WateringMode,
 } from "@/lib/types"
 import type { PlantDetailsPatch } from "@/lib/actions/plants"
@@ -94,6 +97,7 @@ export function PlantDetailsDialog({
   const [species, setSpecies] = useState("")
   const [scientificName, setScientificName] = useState("")
   const [category, setCategory] = useState<PlantCategory>("interior")
+  const [location, setLocation] = useState<PlantLocation>("interior")
   const [wateringMode, setWateringMode] = useState<WateringMode>("soil")
   const [wateringFrequencyDays, setWateringFrequencyDays] = useState(7)
   const [lightNeeds, setLightNeeds] = useState<Plant["lightNeeds"]>("media")
@@ -109,6 +113,7 @@ export function PlantDetailsDialog({
     setSpecies(plant.species)
     setScientificName(plant.scientificName ?? "")
     setCategory(plant.category)
+    setLocation(plant.location)
     setWateringMode(plant.wateringMode)
     setWateringFrequencyDays(plant.wateringFrequencyDays)
     setLightNeeds(plant.lightNeeds)
@@ -135,6 +140,7 @@ export function PlantDetailsDialog({
         species: trimmedSpecies,
         scientificName: scientificName.trim(),
         category,
+        location,
         wateringMode,
         wateringFrequencyDays,
         lightNeeds,
@@ -203,6 +209,8 @@ export function PlantDetailsDialog({
                 setScientificName={setScientificName}
                 category={category}
                 setCategory={setCategory}
+                location={location}
+                setLocation={setLocation}
                 wateringMode={wateringMode}
                 setWateringMode={setWateringMode}
                 wateringFrequencyDays={wateringFrequencyDays}
@@ -342,6 +350,11 @@ function ViewContent({
           value={categoryLabel}
           Icon={CategoryIcon}
         />
+        <InfoTile
+          label="Dónde vive"
+          value={LOCATION_META[plant.location].label}
+          Icon={LOCATION_META[plant.location].icon}
+        />
         <InfoTile label="Luz" value={lightLabel} Icon={LightIcon} />
         <InfoTile
           label={careMeta.label}
@@ -409,6 +422,8 @@ function EditForm(props: {
   setScientificName: (v: string) => void
   category: PlantCategory
   setCategory: (v: PlantCategory) => void
+  location: PlantLocation
+  setLocation: (v: PlantLocation) => void
   wateringMode: WateringMode
   setWateringMode: (v: WateringMode) => void
   wateringFrequencyDays: number
@@ -460,6 +475,27 @@ function EditForm(props: {
             ))}
           </SelectContent>
         </Select>
+      </Field>
+
+      <Field label="Dónde la tenés">
+        <Select
+          value={props.location}
+          onValueChange={(v) => props.setLocation(v as PlantLocation)}
+        >
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {ALL_LOCATIONS.map((l) => (
+              <SelectItem key={l} value={l}>
+                {LOCATION_META[l].label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <p className="mt-1 text-xs text-muted-foreground">
+          {LOCATION_META[props.location].description}
+        </p>
       </Field>
 
       <Field label="Modo de cuidado">

@@ -10,7 +10,12 @@ import {
   type PlantDetailsPatch,
 } from "@/lib/actions/plants"
 import { ALL_CATEGORIES, WATERING_MODE_META } from "@/lib/plant-meta"
-import type { Plant, PlantCategory, PlantIdentification } from "@/lib/types"
+import type {
+  Plant,
+  PlantCategory,
+  PlantIdentification,
+  PlantLocation,
+} from "@/lib/types"
 
 export function usePlantManager(initialPlants: Plant[]) {
   const [plants, setPlants] = useState<Plant[]>(initialPlants)
@@ -32,8 +37,18 @@ export function usePlantManager(initialPlants: Plant[]) {
   }, [])
 
   const registerPlant = useCallback(
-    async (alias: string, identification: PlantIdentification, imageUrl?: string) => {
-      const res = await registerPlantAction({ alias, identification, imageUrl })
+    async (
+      alias: string,
+      identification: PlantIdentification,
+      imageUrl?: string,
+      location?: PlantLocation,
+    ) => {
+      const res = await registerPlantAction({
+        alias,
+        identification,
+        imageUrl,
+        location,
+      })
       if (res.ok) {
         setPlants((prev) => [res.plant, ...prev])
         const mode = WATERING_MODE_META[res.plant.wateringMode]

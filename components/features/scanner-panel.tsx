@@ -35,14 +35,17 @@ import { identifyPlantAction } from "@/lib/actions/plants"
 import { downscaleImage } from "@/lib/image-utils"
 import {
   ALL_CATEGORIES,
+  ALL_LOCATIONS,
   ALL_WATERING_MODES,
   CATEGORY_META,
   LIGHT_OPTIONS,
+  LOCATION_META,
   WATERING_MODE_META,
 } from "@/lib/plant-meta"
 import type {
   PlantCategory,
   PlantIdentification,
+  PlantLocation,
   WateringMode,
 } from "@/lib/types"
 import { usePlantManager } from "@/lib/hooks/use-plant-manager"
@@ -66,6 +69,9 @@ export function ScannerPanel({
   const [editDraft, setEditDraft] = useState<PlantIdentification | null>(null)
   const [alias, setAlias] = useState("")
   const [aliasError, setAliasError] = useState<string | null>(null)
+  // La ubicación FÍSICA es independiente de los datos botánicos: la decide el
+  // usuario porque depende de su casa, no de la especie.
+  const [location, setLocation] = useState<PlantLocation>("interior")
   const [isSaving, startSaving] = useTransition()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const galleryInputRef = useRef<HTMLInputElement>(null)
@@ -78,6 +84,7 @@ export function ScannerPanel({
     setEditDraft(null)
     setAlias("")
     setAliasError(null)
+    setLocation("interior")
   }
 
   async function handleFile(file: File) {
@@ -95,6 +102,8 @@ export function ScannerPanel({
         return
       }
       setIdentification(result.identification)
+      // Pre-rellenamos con la sugerencia de Gemini; el usuario la confirma.
+      setLocation(result.identification.suggestedLocation)
       setStep("confirm")
     }
     reader.readAsDataURL(file)
@@ -129,7 +138,12 @@ export function ScannerPanel({
     }
     if (!identification) return
     startSaving(async () => {
-      await onRegister(alias, identification, imageDataUrl ?? undefined)
+      await onRegister(
+        alias,
+        identification,
+        imageDataUrl ?? undefined,
+        location,
+      )
       reset()
       if (onDone) {
         onDone()
@@ -467,6 +481,51 @@ export function ScannerPanel({
                 Así la vas a reconocer en tu jardín y en el chat con el agente.
               </FieldDescription>
             )}
+          </Field>
+
+          {/* Selector de ubicación física: lo destacamos porque es lo que
+              decide si el agente la avisa en alertas de Zonda, granizo, etc. */}
+          <Field>
+            <FieldLabel htmlFor="plant-location">¿Dónde la vas a tener?</FieldLabel>
+            <div
+              role="radiogroup"
+              aria-labelledby="plant-location"
+              className="grid grid-cols-2 gap-2"
+            >
+              {ALL_LOCATIONS.map((loc) => {
+                const meta = LOCATION_META[loc]
+                const Icon = meta.icon
+                const isSelected = location === loc
+                return (
+                  <button
+                    key={loc}
+                    type="button"
+                    role="radio"
+                    aria-checked={isSelected}
+                    onClick={() => setLocation(loc)}
+                    className={cn(
+                      "flex flex-col items-start gap-1.5 rounded-2xl border-2 p-3 text-left transition-colors",
+                      isSelected
+                        ? "border-primary bg-primary/10 text-foreground"
+                        : "border-border bg-card hover:bg-secondary/40",
+                    )}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Icon className="size-4" aria-hidden="true" />
+                      <span className="text-sm font-semibold">
+                        {meta.label}
+                      </span>
+                    </div>
+                    <span className="text-xs leading-snug text-muted-foreground">
+                      {meta.description}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+            <FieldDescription>
+              El agente usa esto para avisarte si viene Zonda, helada o granizo.
+            </FieldDescription>
           </Field>
 
           <Button

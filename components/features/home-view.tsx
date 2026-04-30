@@ -12,6 +12,7 @@ import {
   Snowflake,
   Sun,
   Wind,
+  CloudHail,
   AlertTriangle,
 } from "lucide-react"
 import { usePlantManager } from "@/lib/hooks/use-plant-manager"
@@ -27,6 +28,7 @@ const SECONDARY_ALERT_ICONS: Record<WeatherAlert["type"], React.ElementType> = {
   zonda: Wind,
   frost: Snowflake,
   heatwave: Sun,
+  hail: CloudHail,
   calm: Leaf,
 }
 
