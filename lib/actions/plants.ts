@@ -347,10 +347,13 @@ export async function identifyPlantAction(
     return { ok: false, error: "La imagen no es válida." }
   }
 
-  // 2) Llamada al modelo de visión vía Vercel AI Gateway (zero config para Google).
+  // 2) Llamada al modelo de visión vía Vercel AI Gateway.
+  // Usamos GPT-5 mini: es multimodal, rápido y está habilitado en tu plan
+  // (es el mismo que usa el chat). Gemini requiere AI_GATEWAY_API_KEY con
+  // permisos del provider Google, que tu cuenta hoy no tiene.
   try {
     const { output } = await generateText({
-      model: "google/gemini-3-flash",
+      model: "openai/gpt-5-mini",
       system: SYSTEM_PROMPT,
       output: Output.object({ schema: IdentificationSchema }),
       messages: [
@@ -380,11 +383,14 @@ export async function identifyPlantAction(
     void isPlant
     return { ok: true, identification }
   } catch (error) {
+    // Logueamos detalle completo para poder diagnosticar (403 del gateway,
+    // schema violation, timeout, etc).
     console.error("[v0] Error identificando planta:", error)
+    const message =
+      error instanceof Error ? error.message : "error desconocido"
     return {
       ok: false,
-      error:
-        "El agente botánico no respondió a tiempo. Probá de nuevo en unos segundos.",
+      error: `El agente botánico no pudo procesar la foto (${message.slice(0, 80)}). Probá de nuevo.`,
     }
   }
 }
