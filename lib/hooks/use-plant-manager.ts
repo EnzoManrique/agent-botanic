@@ -20,18 +20,30 @@ import type {
 export function usePlantManager(initialPlants: Plant[]) {
   const [plants, setPlants] = useState<Plant[]>(initialPlants)
   const [isPending, startTransition] = useTransition()
+  // Trackeamos QUÉ planta está siendo regada en este momento. Sin esto el
+  // `isPending` del transition es global y todas las cards muestran spinner
+  // a la vez aunque solo se haya tocado una. Lo seteamos al iniciar la
+  // acción y lo limpiamos cuando el server respondió.
+  const [pendingPlantId, setPendingPlantId] = useState<string | null>(null)
 
   const waterPlant = useCallback((id: string) => {
+    setPendingPlantId(id)
     startTransition(async () => {
-      const res = await waterPlantAction(id)
-      if (res.ok && res.plant) {
-        setPlants((prev) => prev.map((p) => (p.id === id ? res.plant! : p)))
-        const mode = WATERING_MODE_META[res.plant.wateringMode]
-        toast.success(`${mode.actionPast} ${res.plant.alias}`, {
-          description: "Acción de cuidado registrada en el historial.",
-        })
-      } else {
-        toast.error("No pude registrar la acción de cuidado")
+      try {
+        const res = await waterPlantAction(id)
+        if (res.ok && res.plant) {
+          setPlants((prev) =>
+            prev.map((p) => (p.id === id ? res.plant! : p)),
+          )
+          const mode = WATERING_MODE_META[res.plant.wateringMode]
+          toast.success(`${mode.actionPast} ${res.plant.alias}`, {
+            description: "Acción de cuidado registrada en el historial.",
+          })
+        } else {
+          toast.error("No pude registrar la acción de cuidado")
+        }
+      } finally {
+        setPendingPlantId(null)
       }
     })
   }, [])
@@ -132,5 +144,6 @@ export function usePlantManager(initialPlants: Plant[]) {
     editPlant,
     removePlant,
     isPending,
+    pendingPlantId,
   }
 }

@@ -67,11 +67,13 @@ export function PlantCard({
         className="flex flex-1 flex-col text-left rounded-3xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         aria-label={`Ver detalles de ${plant.alias}`}
       >
-        {/* Banner compacto: en mobile usamos aspect-[16/9] (más finito tipo
-            "banner") y en pantallas grandes lo ampliamos a [4/3] que da más
-            presencia a la foto. Si no hay imagen mostramos un fallback con
-            gradient verde + icono — nunca queda un hueco gris vacío. */}
-        <div className="relative aspect-[16/9] sm:aspect-[4/3] overflow-hidden bg-gradient-to-br from-primary/15 to-primary/5">
+        {/* Banner compacto: en mobile forzamos h-40 (160px) porque
+            aspect-ratio en algunos Safari mobile colapsa la altura a 0
+            cuando el contenedor padre no tiene width definido todavía
+            durante el hydrate. En pantallas grandes el aspect-ratio
+            funciona perfecto y le damos más presencia a la foto. Si no
+            hay imagen mostramos un fallback con gradient verde + icono. */}
+        <div className="relative h-40 sm:h-auto sm:aspect-[4/3] overflow-hidden bg-gradient-to-br from-primary/15 to-primary/5">
           {plant.imageUrl ? (
             <Image
               src={plant.imageUrl}

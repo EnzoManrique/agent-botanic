@@ -17,7 +17,7 @@ export function GardenView({ initialPlants }: { initialPlants: Plant[] }) {
     waterPlant,
     editPlant,
     removePlant,
-    isPending,
+    pendingPlantId,
   } = usePlantManager(initialPlants)
 
   // Arrancamos en "Todas" así el usuario ve TODO el jardín de una.
@@ -57,7 +57,7 @@ export function GardenView({ initialPlants }: { initialPlants: Plant[] }) {
         currentCategory={currentCategory}
         onWater={waterPlant}
         onOpen={openPlant}
-        isPending={isPending}
+        pendingPlantId={pendingPlantId}
       />
       <PlantDetailsDialog
         plant={selectedPlant}
