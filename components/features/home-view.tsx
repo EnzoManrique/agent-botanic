@@ -20,7 +20,8 @@ import { WeatherBanner } from "./weather-banner"
 import { ScreenHeader } from "@/components/mobile/screen-header"
 import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
-import type { Plant, WeatherAlert } from "@/lib/types"
+import { ALL_LOCATIONS, LOCATION_META } from "@/lib/plant-meta"
+import type { Plant, PlantLocation, WeatherAlert } from "@/lib/types"
 import type { ProactiveAdvice } from "@/lib/proactive-advisor"
 import { cn } from "@/lib/utils"
 
@@ -86,6 +87,8 @@ export function HomeView({
           accent
         />
       </section>
+
+      {plants.length > 0 ? <LocationSummary plants={plants} /> : null}
 
       <section className="flex flex-col gap-3 px-5">
         <div className="flex items-end justify-between">
@@ -322,6 +325,82 @@ function WaterRow({
         Regar
       </Button>
     </li>
+  )
+}
+
+/**
+ * Lista compacta que muestra dónde está físicamente cada planta del usuario.
+ * Solo aparecen las ubicaciones que tienen al menos una planta para no
+ * llenar la pantalla con tarjetas vacías.
+ */
+function LocationSummary({ plants }: { plants: Plant[] }) {
+  // Agrupamos por location en una sola pasada — más prolijo que filtrar
+  // 4 veces el array.
+  const grouped = plants.reduce<Record<PlantLocation, Plant[]>>(
+    (acc, plant) => {
+      ;(acc[plant.location] ??= []).push(plant)
+      return acc
+    },
+    {} as Record<PlantLocation, Plant[]>,
+  )
+
+  // Mantenemos el orden canónico definido en plant-meta para que el layout
+  // se sienta estable cuando el usuario suma o mueve plantas.
+  const visibleLocations = ALL_LOCATIONS.filter(
+    (loc) => grouped[loc] && grouped[loc].length > 0,
+  )
+
+  return (
+    <section className="flex flex-col gap-3 px-5">
+      <div className="flex items-end justify-between">
+        <div>
+          <h2 className="font-serif text-xl leading-tight font-semibold">
+            Dónde están tus plantas
+          </h2>
+          <p className="text-xs text-muted-foreground">
+            Útil cuando hay alerta de viento o granizo.
+          </p>
+        </div>
+      </div>
+      <ul className="flex flex-col gap-2">
+        {visibleLocations.map((loc) => {
+          const meta = LOCATION_META[loc]
+          const Icon = meta.icon
+          const list = grouped[loc]
+          const aliases = list.map((p) => p.alias).join(", ")
+          return (
+            <li
+              key={loc}
+              className="flex items-start gap-3 rounded-3xl border-2 border-border bg-card p-3 shadow-soft"
+            >
+              <span
+                aria-hidden="true"
+                className={cn(
+                  "flex size-10 shrink-0 items-center justify-center rounded-2xl",
+                  meta.isExposed
+                    ? "bg-accent/20 text-accent"
+                    : "bg-primary/10 text-primary",
+                )}
+              >
+                <Icon className="size-5" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-baseline justify-between gap-2">
+                  <p className="font-semibold leading-tight">{meta.label}</p>
+                  <span className="text-xs font-semibold tabular-nums text-muted-foreground">
+                    {list.length}{" "}
+                    {list.length === 1 ? "planta" : "plantas"}
+                  </span>
+                </div>
+                <p className="mt-0.5 text-sm leading-snug text-muted-foreground text-pretty">
+                  {aliases}
+                </p>
+              </div>
+            </li>
+          )
+        })}
+      </ul>
+    </section>
   )
 }
 
