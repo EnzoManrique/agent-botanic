@@ -11,10 +11,7 @@ import { auth } from "@/auth"
 import { getAllPlants } from "@/lib/db/plants"
 import { getUserSettings } from "@/lib/db/settings"
 import { evaluateAlerts, getForecast } from "@/lib/weather"
-import {
-  searchMercadoLibre,
-  extractStateFromCity,
-} from "@/lib/mercadolibre"
+import { searchMercadoLibre } from "@/lib/mercadolibre"
 
 export const maxDuration = 30
 
@@ -127,7 +124,8 @@ HERRAMIENTAS DISPONIBLES
 - Si el usuario quiere saber el pronóstico de los próximos días → USÁ getWeatherForecast.
 - Si el usuario pide ver sus plantas o un resumen → USÁ listUserPlants.
 - Si pregunta cuándo regar una planta puntual → USÁ checkWateringSchedule con el alias o id.
-- Si el usuario pide PRECIOS, busca dónde comprar fertilizante / sustrato / maceta / herramienta de jardinería → USÁ searchProducts con un query bien específico (ej "fertilizante para potus", "perlita 5 litros"). La herramienta consulta Mercado Libre Argentina y prioriza vendedores en la provincia del usuario para minimizar envíos. Después de invocarla NO repitas en texto la lista de productos; el cliente los renderiza como cards. Solo agregá una recomendación corta, ej: "El primero está en Mendoza con envío gratis, te conviene ese."
+- Si el usuario pregunta dónde comprar fertilizante / sustrato / maceta / semillas / herramientas de jardinería → USÁ searchProducts con un query bien específico (ej "fertilizante para potus", "perlita 5 litros"). La herramienta consulta el CATÁLOGO oficial de Mercado Libre Argentina y devuelve la ficha de cada producto: foto, marca, modelo y un link directo donde el usuario verá los PRECIOS ACTUALIZADOS en mercadolibre.com.ar. La herramienta NO devuelve precios (eso lo ve el usuario al tocar la card). Después de invocarla NO repitas en texto la lista de productos; el cliente los renderiza como cards. Solo agregá una recomendación corta, ej: "Las dos primeras son las opciones más populares para potus, tocá la card para ver los precios."
+- Si el usuario pregunta DIRECTAMENTE por precios o cuánto sale algo → invocá searchProducts igual y aclarale: "No tengo acceso directo a los precios, pero te dejé las fichas oficiales — tocá la card y vas a la página de Mercado Libre con los precios en vivo."
 - Después de usar herramientas, resumí en 2-4 líneas con consejos concretos y accionables.
 - No inventes datos del clima ni precios; siempre obtenelos con las herramientas.
 
@@ -233,7 +231,7 @@ ESTILO DE RESPUESTA
       }),
       searchProducts: tool({
         description:
-          "Busca productos de jardinería (fertilizantes, sustratos, macetas, herramientas) en Mercado Libre Argentina. Prioriza vendedores en la provincia del usuario para minimizar envíos. El cliente renderiza el resultado como cards visuales — el modelo NO debe repetir la lista en texto.",
+          "Consulta el CATÁLOGO oficial de Mercado Libre Argentina para encontrar fichas de productos de jardinería (fertilizantes, sustratos, macetas, herramientas, semillas). Devuelve foto oficial, nombre canónico, marca, modelo y un link directo a la página del producto en mercadolibre.com.ar — el usuario ve ahí los precios actualizados. NO devuelve precios. El cliente renderiza el resultado como cards visuales: el modelo NO debe repetir la lista en texto.",
         inputSchema: z.object({
           query: z
             .string()
@@ -249,14 +247,11 @@ ESTILO DE RESPUESTA
             .describe("Máximo de productos. Default 6."),
         }),
         execute: async ({ query, limit }) => {
-          const preferredState = extractStateFromCity(city)
           const products = await searchMercadoLibre(query, {
-            preferredState,
             limit: limit ?? 6,
           })
           return {
             query,
-            preferredState,
             count: products.length,
             products,
           }

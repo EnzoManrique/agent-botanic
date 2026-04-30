@@ -382,7 +382,6 @@ function ProductsFromMessage({
   return (
     <AgentProductCarousel
       query={out.query}
-      preferredState={out.preferredState ?? null}
       products={out.products ?? []}
     />
   )
@@ -390,7 +389,6 @@ function ProductsFromMessage({
 
 interface ProductsToolOutput {
   query: string
-  preferredState: string | null
   products: AgentProduct[]
 }
 
