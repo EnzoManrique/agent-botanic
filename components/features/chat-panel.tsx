@@ -27,8 +27,10 @@ import {
   InputGroupAddon,
 } from "@/components/ui/input-group"
 import { Spinner } from "@/components/ui/spinner"
+import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { downscaleImage } from "@/lib/image-utils"
+import { humanizeAiError } from "@/lib/ai-retry"
 import {
   AgentProductCarousel,
   type AgentProduct,
@@ -99,6 +101,13 @@ export function ChatPanel({ initialPrompt }: { initialPrompt?: string }) {
   const initialPromptSent = useRef(false)
   const { messages, sendMessage, status } = useChat({
     transport: new DefaultChatTransport({ api: "/api/chat" }),
+    // Cuando el modelo está saturado o hay un error de red el chat no
+    // mostraba nada y la respuesta quedaba "colgada" para el usuario.
+    // Acá traducimos el error a castellano y mostramos un toast claro.
+    onError: (err) => {
+      console.error("[v0] Error en chat:", err)
+      toast.error(humanizeAiError(err))
+    },
   })
 
   const isStreaming = status === "streaming" || status === "submitted"

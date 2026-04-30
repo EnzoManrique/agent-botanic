@@ -15,6 +15,7 @@ import {
 } from "@/lib/db/plants"
 import { addCareLog } from "@/lib/db/care-logs"
 import { sql } from "@/lib/db"
+import { humanizeAiError, tryModelsInOrder } from "@/lib/ai-retry"
 import type {
   Plant,
   PlantCategory,
@@ -377,24 +378,31 @@ export async function identifyPlantAction(
   })
 
   try {
-    const { output } = await generateText({
-      // gemini-2.5-flash: multimodal, rápido y dentro del free tier.
-      model: google("gemini-2.5-flash"),
-      system: SYSTEM_PROMPT,
-      output: Output.object({ schema: IdentificationSchema }),
-      messages: [
-        {
-          role: "user",
-          content: [
+    // Probamos primero con gemini-2.5-flash (más nuevo y preciso) y si está
+    // saturado caemos a gemini-2.0-flash, que también es multimodal y free
+    // tier. Esto reduce drásticamente los "high demand" que veía el usuario
+    // — los dos modelos rara vez están saturados a la vez.
+    const { output } = await tryModelsInOrder(
+      [google("gemini-2.5-flash"), google("gemini-2.0-flash")],
+      (model) =>
+        generateText({
+          model,
+          system: SYSTEM_PROMPT,
+          output: Output.object({ schema: IdentificationSchema }),
+          messages: [
             {
-              type: "text",
-              text: "Identificá la planta de esta foto. Si no hay una planta, marcá isPlant=false.",
+              role: "user",
+              content: [
+                {
+                  type: "text",
+                  text: "Identificá la planta de esta foto. Si no hay una planta, marcá isPlant=false.",
+                },
+                { type: "image", image: imageDataUrl },
+              ],
             },
-            { type: "image", image: imageDataUrl },
           ],
-        },
-      ],
-    })
+        }),
+    )
 
     if (!output.isPlant) {
       return {
@@ -412,11 +420,9 @@ export async function identifyPlantAction(
     // Logueamos detalle completo para poder diagnosticar (403 del gateway,
     // schema violation, timeout, etc).
     console.error("[v0] Error identificando planta:", error)
-    const message =
-      error instanceof Error ? error.message : "error desconocido"
     return {
       ok: false,
-      error: `El agente botánico no pudo procesar la foto (${message.slice(0, 80)}). Probá de nuevo.`,
+      error: humanizeAiError(error),
     }
   }
 }
