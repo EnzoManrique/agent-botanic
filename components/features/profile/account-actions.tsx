@@ -11,8 +11,8 @@ export function AccountActions() {
   const { logout } = useAuth()
   const router = useRouter()
 
-  function handleLogout() {
-    logout()
+  async function handleLogout() {
+    await logout()
     router.replace("/login")
   }
 

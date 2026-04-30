@@ -1,8 +1,82 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
+import { z } from "zod"
 import { addLog, addPlant, getAllPlants, getPlantById, updatePlant } from "@/lib/store"
 import type { Plant, PlantCategory, PlantIdentification } from "@/lib/types"
+import { auth } from "@/auth"
+import { sql } from "@/lib/db"
+
+/**
+ * Esquema de validación para la nueva planta.
+ * Se valida tanto del lado del cliente como del servidor (esto vale acá).
+ */
+const SavePlantSchema = z.object({
+  nickname: z.string().trim().min(1, "Ponele un apodo a tu planta."),
+  species: z.string().trim().min(1, "Necesitamos saber la especie."),
+  watering_frequency_days: z
+    .number()
+    .int()
+    .min(1, "Mínimo 1 día.")
+    .max(60, "Máximo 60 días."),
+  category: z.string().trim().min(1, "Elegí una categoría."),
+})
+
+export type SavePlantInput = z.infer<typeof SavePlantSchema>
+
+export type SavePlantResult =
+  | { ok: true; id: number }
+  | { ok: false; error: string }
+
+/**
+ * Inserta una nueva planta en la tabla `plants` de Postgres asociada al
+ * usuario logueado.
+ *
+ * Columnas: id (SERIAL), user_email, nickname, species,
+ * watering_frequency_days, category.
+ */
+export async function savePlant(input: SavePlantInput): Promise<SavePlantResult> {
+  // 1. Verificamos que haya sesión activa
+  const session = await auth()
+  if (!session?.user?.email) {
+    return { ok: false, error: "Tenés que iniciar sesión para guardar plantas." }
+  }
+
+  // 2. Validamos los inputs
+  const parsed = SavePlantSchema.safeParse(input)
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: parsed.error.issues[0]?.message ?? "Datos inválidos.",
+    }
+  }
+
+  // 3. Insertamos en Postgres usando query parametrizada (anti SQL injection)
+  try {
+    const rows = (await sql`
+      INSERT INTO plants (
+        user_email,
+        nickname,
+        species,
+        watering_frequency_days,
+        category
+      ) VALUES (
+        ${session.user.email},
+        ${parsed.data.nickname},
+        ${parsed.data.species},
+        ${parsed.data.watering_frequency_days},
+        ${parsed.data.category}
+      )
+      RETURNING id
+    `) as { id: number }[]
+    revalidatePath("/jardin")
+    revalidatePath("/")
+    return { ok: true, id: rows[0]?.id ?? 0 }
+  } catch (error) {
+    console.error("[v0] Error guardando planta:", error)
+    return { ok: false, error: "No pudimos guardar la planta en el jardín." }
+  }
+}
 
 /** Fields the user is allowed to overwrite manually after the AI suggestion. */
 export interface PlantDetailsPatch {
