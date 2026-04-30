@@ -5,7 +5,6 @@ import {
   stepCountIs,
   type UIMessage,
 } from "ai"
-import { createGoogleGenerativeAI } from "@ai-sdk/google"
 import { z } from "zod"
 import { auth } from "@/auth"
 import { getAllPlants } from "@/lib/db/plants"
@@ -22,18 +21,13 @@ export async function POST(req: Request) {
   }
   const userEmail = session.user.email
 
-  // Misma estrategia que el scanner: hablamos directo a Google AI Studio.
-  // El AI Gateway de Vercel exige tarjeta de crédito; con la key gratis de
-  // estudiante alcanza para 1500 reqs/día.
-  if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
-    return new Response(
-      "Falta GOOGLE_GENERATIVE_AI_API_KEY en el environment.",
-      { status: 500 },
-    )
-  }
-  const google = createGoogleGenerativeAI({
-    apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
-  })
+  // ANTES usábamos `@ai-sdk/google` directo contra Google AI Studio, pero el
+  // free tier es de 50 req/día y se agotaba en plena demo (la usuaria veía
+  // toasts de "Algo salió mal" porque era 429 RESOURCE_EXHAUSTED).
+  // AHORA pasamos por el AI Gateway de Vercel: con sólo poner el modelo como
+  // string ("openai/gpt-5-mini") la AI SDK rutea automáticamente, sin
+  // necesidad de provider package, key adicional ni tarjeta de crédito.
+  // Cuota mucho mayor + soporte de fallback entre proveedores.
 
   const { messages }: { messages: UIMessage[] } = await req.json()
 
@@ -151,12 +145,10 @@ ESTILO DE RESPUESTA
   }
 
   const result = streamText({
-    // Usamos gemini-2.0-flash como principal: es más estable bajo carga
-    // que 2.5-flash (cuya capacidad pico tiene picos de 503/"high demand"
-    // varias veces al día) y para chat con tools rinde igual de bien. El
-    // 2.5-flash queda como fallback en el escaneo de fotos que sí necesita
-    // mejor detalle visual.
-    model: google("gemini-2.0-flash"),
+    // openai/gpt-5-mini vía AI Gateway: zero-config, multimodal, soporta
+    // tool calls y tiene cuota muy holgada en el plan default de Vercel.
+    // Es el modelo recomendado para chat con tools en AI SDK 6.
+    model: "openai/gpt-5-mini",
     system,
     messages: await convertToModelMessages(messages),
     stopWhen: stepCountIs(5),
