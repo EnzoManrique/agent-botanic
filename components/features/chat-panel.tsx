@@ -22,11 +22,15 @@ import {
 import { Spinner } from "@/components/ui/spinner"
 import { cn } from "@/lib/utils"
 import { downscaleImage } from "@/lib/image-utils"
+import {
+  AgentProductCarousel,
+  type AgentProduct,
+} from "./agent-product-carousel"
 
 const SUGGESTIONS = [
   "¿Conviene regar hoy en Mendoza?",
   "Resumime el estado de mis plantas",
-  "¿Qué sustrato uso para una suculenta?",
+  "Buscame fertilizante para potus barato",
   "Adjuntame foto de hoja con manchitas",
 ]
 
@@ -163,7 +167,13 @@ export function ChatPanel({ initialPrompt }: { initialPrompt?: string }) {
           ) : null}
 
           {messages.map((m) => (
-            <MessageBubble key={m.id} message={m} />
+            <div key={m.id} className="flex flex-col gap-2">
+              <MessageBubble message={m} />
+              {/* Si el mensaje del asistente disparó searchProducts y ya
+                  vino la respuesta, mostramos el carrusel full-width.
+                  Va FUERA del bubble para que las cards respiren. */}
+              <ProductsFromMessage message={m} />
+            </div>
           ))}
 
           {isStreaming &&
@@ -342,6 +352,48 @@ function MessageBubble({
   )
 }
 
+/**
+ * Busca dentro de los parts del mensaje un tool-searchProducts con resultado
+ * disponible y, si lo encuentra, renderiza el carrusel de productos. Es una
+ * extensión visual del bubble: vive como sibling para no romper el max-w
+ * del bubble base y poder usar todo el ancho del mensaje.
+ */
+function ProductsFromMessage({
+  message,
+}: {
+  message: ReturnType<typeof useChat>["messages"][number]
+}) {
+  // Sólo renderizamos para mensajes del asistente — los del user nunca
+  // tienen tool parts.
+  if (message.role !== "assistant") return null
+
+  const productPart = message.parts.find(
+    (p): p is typeof p & { state: string; output: ProductsToolOutput } =>
+      p.type === "tool-searchProducts" &&
+      "state" in p &&
+      p.state === "output-available" &&
+      "output" in p &&
+      typeof p.output === "object" &&
+      p.output !== null,
+  )
+  if (!productPart) return null
+
+  const out = productPart.output
+  return (
+    <AgentProductCarousel
+      query={out.query}
+      preferredState={out.preferredState ?? null}
+      products={out.products ?? []}
+    />
+  )
+}
+
+interface ProductsToolOutput {
+  query: string
+  preferredState: string | null
+  products: AgentProduct[]
+}
+
 function ToolBadge({ part }: { part: any }) {
   const toolName = part.type.replace(/^tool-/, "")
   const labels: Record<string, string> = {
@@ -349,6 +401,7 @@ function ToolBadge({ part }: { part: any }) {
     getWeatherForecast: "Pidiendo pronóstico de 3 días",
     listUserPlants: "Revisando tu jardín",
     checkWateringSchedule: "Calculando próximo riego",
+    searchProducts: "Buscando precios en Mercado Libre",
   }
   const label = labels[toolName] ?? toolName
   const done = part.state === "output-available"

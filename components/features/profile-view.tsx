@@ -1,8 +1,9 @@
 "use client"
 
 import { useEffect, useMemo, useState, useTransition } from "react"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, Check } from "lucide-react"
+import { ArrowLeft, ChevronRight, Check, Zap } from "lucide-react"
 import { toast } from "sonner"
 import { ScreenHeader } from "@/components/mobile/screen-header"
 import { Button } from "@/components/ui/button"
@@ -119,6 +120,33 @@ export function ProfileView({
         location={settings.location}
         onChange={(location) => setSettings((s) => ({ ...s, location }))}
       />
+
+      {/* Entry point al showcase MCP. Lo metemos como card linkeable
+          para que se vea destacado pero sin pelear visualmente con las
+          cards de configuración real (perfil, agente, clima). */}
+      <Link
+        href="/perfil/integraciones"
+        className="mx-5 flex items-center gap-3 rounded-3xl border-2 border-border bg-card p-4 shadow-soft transition-colors hover:border-primary/40 hover:bg-secondary/40"
+      >
+        <span
+          aria-hidden="true"
+          className="bg-primary text-primary-foreground flex size-11 shrink-0 items-center justify-center rounded-2xl shadow-soft"
+        >
+          <Zap className="size-5" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="font-serif text-base font-bold leading-tight">
+            Integraciones
+          </p>
+          <p className="text-xs leading-snug text-muted-foreground text-pretty">
+            Conectá Botanic con Claude, Apple Shortcuts y más vía MCP.
+          </p>
+        </div>
+        <ChevronRight
+          className="size-5 shrink-0 text-muted-foreground"
+          aria-hidden="true"
+        />
+      </Link>
 
       <section className="mx-5 flex gap-2">
         <Button
