@@ -34,6 +34,13 @@ async function getUserByEmail(email: string): Promise<DbUser | null> {
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
+  // Pasamos el secret explícitamente. NextAuth v5 también lo lee solo de
+  // process.env.AUTH_SECRET, pero ser explícito evita errores raros en
+  // ambientes con proxies / preview deployments.
+  secret: process.env.AUTH_SECRET,
+  // El sandbox de v0 / preview de Vercel sirve la app detrás de un proxy con
+  // un host distinto al esperado. Sin trustHost, Auth.js corta el handshake.
+  trustHost: true,
   session: { strategy: "jwt" },
   providers: [
     Credentials({
