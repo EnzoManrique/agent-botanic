@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache"
 import { generateText, Output } from "ai"
+import { createGoogleGenerativeAI } from "@ai-sdk/google"
 import { z } from "zod"
 import { auth } from "@/auth"
 import {
@@ -347,13 +348,24 @@ export async function identifyPlantAction(
     return { ok: false, error: "La imagen no es válida." }
   }
 
-  // 2) Llamada al modelo de visión vía Vercel AI Gateway.
-  // Usamos GPT-5 mini: es multimodal, rápido y está habilitado en tu plan
-  // (es el mismo que usa el chat). Gemini requiere AI_GATEWAY_API_KEY con
-  // permisos del provider Google, que tu cuenta hoy no tiene.
+  // 2) Llamada directa a Gemini (sin pasar por AI Gateway).
+  // Usamos GOOGLE_GENERATIVE_AI_API_KEY que se obtiene gratis en
+  // https://aistudio.google.com/app/apikey — 1500 requests gratis al día.
+  if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
+    return {
+      ok: false,
+      error:
+        "Falta configurar GOOGLE_GENERATIVE_AI_API_KEY. Pedile al admin que la agregue.",
+    }
+  }
+  const google = createGoogleGenerativeAI({
+    apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
+  })
+
   try {
     const { output } = await generateText({
-      model: "openai/gpt-5-mini",
+      // gemini-2.5-flash: multimodal, rápido y dentro del free tier.
+      model: google("gemini-2.5-flash"),
       system: SYSTEM_PROMPT,
       output: Output.object({ schema: IdentificationSchema }),
       messages: [
