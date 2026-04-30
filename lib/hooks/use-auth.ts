@@ -1,8 +1,8 @@
 "use client"
 
 import { useCallback } from "react"
-import { useSession, signOut } from "next-auth/react"
-import { loginAction, registerAction } from "@/lib/actions/auth"
+import { useSession } from "next-auth/react"
+import { loginAction, logoutAction, registerAction } from "@/lib/actions/auth"
 
 /**
  * Hook que envuelve `useSession` de NextAuth y expone una API similar
@@ -75,8 +75,11 @@ export function useAuth() {
   }, [])
 
   const logout = useCallback(async () => {
-    await signOut({ redirect: false })
-  }, [])
+    // Server action: cierra la sesión del lado del servidor (borra la cookie).
+    // Después le pedimos a useSession que se actualice para limpiar el estado.
+    await logoutAction()
+    await update()
+  }, [update])
 
   const requestReset = useCallback(async (_email: string) => {
     // Pendiente: implementar reset por email cuando configuremos un mailer

@@ -8,6 +8,13 @@ interface ScreenHeaderProps {
   icon?: React.ReactNode
   className?: string
   action?: React.ReactNode
+  /**
+   * Si está definido, el cuadrado del ícono se renderiza como un botón
+   * accesible (útil para convertir el ícono en una flecha de "volver").
+   */
+  onIconClick?: () => void
+  /** Texto accesible para el botón cuando `onIconClick` está definido. */
+  iconLabel?: string
 }
 
 export function ScreenHeader({
@@ -17,7 +24,13 @@ export function ScreenHeader({
   icon,
   className,
   action,
+  onIconClick,
+  iconLabel,
 }: ScreenHeaderProps) {
+  const iconNode = icon ?? <Leaf className="size-5" />
+  const iconClasses =
+    "bg-primary text-primary-foreground flex size-11 shrink-0 items-center justify-center rounded-2xl shadow-soft"
+
   return (
     <header
       className={cn(
@@ -26,12 +39,23 @@ export function ScreenHeader({
       )}
     >
       <div className="flex flex-1 items-start gap-3">
-        <div
-          className="bg-primary text-primary-foreground flex size-11 shrink-0 items-center justify-center rounded-2xl shadow-soft"
-          aria-hidden="true"
-        >
-          {icon ?? <Leaf className="size-5" />}
-        </div>
+        {onIconClick ? (
+          <button
+            type="button"
+            onClick={onIconClick}
+            aria-label={iconLabel ?? "Volver"}
+            className={cn(
+              iconClasses,
+              "transition-transform hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+            )}
+          >
+            {iconNode}
+          </button>
+        ) : (
+          <div className={iconClasses} aria-hidden="true">
+            {iconNode}
+          </div>
+        )}
         <div className="min-w-0 flex-1">
           <h1 className="font-serif text-2xl leading-tight font-bold text-balance">
             {title}

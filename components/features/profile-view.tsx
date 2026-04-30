@@ -1,7 +1,8 @@
 "use client"
 
 import { useEffect, useMemo, useState, useTransition } from "react"
-import { Check, Settings } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { ArrowLeft, Check } from "lucide-react"
 import { toast } from "sonner"
 import { ScreenHeader } from "@/components/mobile/screen-header"
 import { Button } from "@/components/ui/button"
@@ -43,9 +44,18 @@ export function ProfileView({
   initialSettings: UserSettings
 }) {
   const { user } = useAuth()
+  const router = useRouter()
   const [settings, setSettings] = useState<UserSettings>(initialSettings)
   const [pristine, setPristine] = useState<UserSettings>(initialSettings)
   const [isPending, startTransition] = useTransition()
+
+  function handleBack() {
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      router.back()
+    } else {
+      router.push("/")
+    }
+  }
 
   // Hydrate name/email/locally-cached settings once we know the user.
   useEffect(() => {
@@ -100,7 +110,9 @@ export function ProfileView({
         eyebrow="Configuración"
         title="Ajustes de perfil"
         subtitle="Personalizá tu experiencia de jardinería."
-        icon={<Settings className="size-5" aria-hidden="true" />}
+        icon={<ArrowLeft className="size-5" aria-hidden="true" />}
+        onIconClick={handleBack}
+        iconLabel="Volver"
       />
 
       <ProfileHeaderCard

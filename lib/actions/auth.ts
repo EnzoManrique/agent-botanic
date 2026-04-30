@@ -134,5 +134,7 @@ export async function loginAction(input: {
 }
 
 export async function logoutAction() {
-  await signOut({ redirectTo: "/login" })
+  // No usamos redirectTo acá: dejamos que el cliente navegue después,
+  // así evitamos el throw NEXT_REDIRECT cuando se invoca desde un onClick.
+  await signOut({ redirect: false })
 }
