@@ -5,6 +5,7 @@ import {
   stepCountIs,
   type UIMessage,
 } from "ai"
+import { createGoogleGenerativeAI } from "@ai-sdk/google"
 import { z } from "zod"
 import { auth } from "@/auth"
 import { getAllPlants } from "@/lib/db/plants"
@@ -21,13 +22,21 @@ export async function POST(req: Request) {
   }
   const userEmail = session.user.email
 
-  // ANTES usábamos `@ai-sdk/google` directo contra Google AI Studio, pero el
-  // free tier es de 50 req/día y se agotaba en plena demo (la usuaria veía
-  // toasts de "Algo salió mal" porque era 429 RESOURCE_EXHAUSTED).
-  // AHORA pasamos por el AI Gateway de Vercel: con sólo poner el modelo como
-  // string ("openai/gpt-5-mini") la AI SDK rutea automáticamente, sin
-  // necesidad de provider package, key adicional ni tarjeta de crédito.
-  // Cuota mucho mayor + soporte de fallback entre proveedores.
+  // Hablamos directo a Google AI Studio (NO al AI Gateway de Vercel).
+  // El AI Gateway requiere tarjeta de crédito incluso para servir los
+  // créditos gratis ("AI Gateway requires a valid credit card on file"),
+  // mientras que la API directa de Google AI Studio tiene un free tier
+  // generoso (~1500 req/día para gemini-2.0-flash) sin necesidad de tarjeta.
+  // La key se obtiene gratis en https://aistudio.google.com/app/apikey.
+  if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
+    return new Response(
+      "Falta GOOGLE_GENERATIVE_AI_API_KEY en el environment.",
+      { status: 500 },
+    )
+  }
+  const google = createGoogleGenerativeAI({
+    apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
+  })
 
   const { messages }: { messages: UIMessage[] } = await req.json()
 
@@ -145,10 +154,10 @@ ESTILO DE RESPUESTA
   }
 
   const result = streamText({
-    // openai/gpt-5-mini vía AI Gateway: zero-config, multimodal, soporta
-    // tool calls y tiene cuota muy holgada en el plan default de Vercel.
-    // Es el modelo recomendado para chat con tools en AI SDK 6.
-    model: "openai/gpt-5-mini",
+    // gemini-2.0-flash vía Google AI Studio: estable, multimodal, soporta
+    // tool calling, ~1500 req/día gratis. Es el sweet spot para chat con
+    // tools sin requerir tarjeta de crédito.
+    model: google("gemini-2.0-flash"),
     system,
     messages: await convertToModelMessages(messages),
     stopWhen: stepCountIs(5),

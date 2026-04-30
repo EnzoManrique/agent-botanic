@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache"
 import { generateText, Output } from "ai"
+import { createGoogleGenerativeAI } from "@ai-sdk/google"
 import { z } from "zod"
 import { auth } from "@/auth"
 import {
@@ -362,21 +363,30 @@ export async function identifyPlantAction(
     return { ok: false, error: "La imagen no es válida." }
   }
 
-  // 2) Llamada al modelo vía AI Gateway de Vercel — zero-config, sin
-  // necesidad de Google API key. ANTES usábamos Google AI Studio directo
-  // pero su free tier (50 req/día) se agotaba durante demos y la app
-  // empezaba a tirar 429 RESOURCE_EXHAUSTED en cadena. El AI Gateway tiene
-  // cuota mucho mayor y nos permite fallback entre proveedores.
+  // 2) Llamada directa a Google AI Studio. Probamos AI Gateway de Vercel
+  // pero requiere tarjeta de crédito incluso para los créditos gratis,
+  // mientras que la API de Google AI Studio da ~1500 req/día gratis sin
+  // tarjeta. La key se obtiene en https://aistudio.google.com/app/apikey.
+  if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
+    return {
+      ok: false,
+      error:
+        "Falta configurar GOOGLE_GENERATIVE_AI_API_KEY. Pedile al admin que la agregue.",
+    }
+  }
+  const google = createGoogleGenerativeAI({
+    apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
+  })
+
   try {
-    // Probamos primero con openai/gpt-5-mini (multimodal, rápido, super
-    // estable) y si está saturado o falla caemos a anthropic/claude-opus-4.6
-    // que también es multimodal — Anthropic e OpenAI rara vez tienen
-    // problemas simultáneos.
+    // Intentamos primero con gemini-2.5-flash (mejor visión y comprensión
+    // botánica) y caemos a gemini-2.0-flash si está saturado. Los dos
+    // modelos son multimodales y comparten el free tier de Google.
     const { output } = await tryModelsInOrder(
-      ["openai/gpt-5-mini", "anthropic/claude-opus-4.6"],
-      (modelId) =>
+      [google("gemini-2.5-flash"), google("gemini-2.0-flash")],
+      (model) =>
         generateText({
-          model: modelId,
+          model,
           system: SYSTEM_PROMPT,
           output: Output.object({ schema: IdentificationSchema }),
           messages: [
