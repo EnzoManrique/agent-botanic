@@ -2,15 +2,22 @@
 
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
-import { addLog, addPlant, getAllPlants, getPlantById, updatePlant } from "@/lib/store"
-import type { Plant, PlantCategory, PlantIdentification } from "@/lib/types"
 import { auth } from "@/auth"
+import {
+  createPlant,
+  getAllPlants as dbGetAllPlants,
+  getPlantById as dbGetPlantById,
+  markWatered,
+  updatePlantDetails as dbUpdatePlantDetails,
+} from "@/lib/db/plants"
+import { addCareLog } from "@/lib/db/care-logs"
 import { sql } from "@/lib/db"
+import type { Plant, PlantCategory, PlantIdentification } from "@/lib/types"
 
-/**
- * Esquema de validación para la nueva planta.
- * Se valida tanto del lado del cliente como del servidor (esto vale acá).
- */
+/* -------------------------------------------------------------------------- */
+/* savePlant — insert simple usado desde el front si quieren registrar manual  */
+/* -------------------------------------------------------------------------- */
+
 const SavePlantSchema = z.object({
   nickname: z.string().trim().min(1, "Ponele un apodo a tu planta."),
   species: z.string().trim().min(1, "Necesitamos saber la especie."),
@@ -23,26 +30,15 @@ const SavePlantSchema = z.object({
 })
 
 export type SavePlantInput = z.infer<typeof SavePlantSchema>
-
 export type SavePlantResult =
   | { ok: true; id: number }
   | { ok: false; error: string }
 
-/**
- * Inserta una nueva planta en la tabla `plants` de Postgres asociada al
- * usuario logueado.
- *
- * Columnas: id (SERIAL), user_email, nickname, species,
- * watering_frequency_days, category.
- */
 export async function savePlant(input: SavePlantInput): Promise<SavePlantResult> {
-  // 1. Verificamos que haya sesión activa
   const session = await auth()
   if (!session?.user?.email) {
     return { ok: false, error: "Tenés que iniciar sesión para guardar plantas." }
   }
-
-  // 2. Validamos los inputs
   const parsed = SavePlantSchema.safeParse(input)
   if (!parsed.success) {
     return {
@@ -50,17 +46,10 @@ export async function savePlant(input: SavePlantInput): Promise<SavePlantResult>
       error: parsed.error.issues[0]?.message ?? "Datos inválidos.",
     }
   }
-
-  // 3. Insertamos en Postgres usando query parametrizada (anti SQL injection)
   try {
     const rows = (await sql`
-      INSERT INTO plants (
-        user_email,
-        nickname,
-        species,
-        watering_frequency_days,
-        category
-      ) VALUES (
+      INSERT INTO plants (user_email, nickname, species, watering_frequency_days, category)
+      VALUES (
         ${session.user.email},
         ${parsed.data.nickname},
         ${parsed.data.species},
@@ -78,7 +67,10 @@ export async function savePlant(input: SavePlantInput): Promise<SavePlantResult>
   }
 }
 
-/** Fields the user is allowed to overwrite manually after the AI suggestion. */
+/* -------------------------------------------------------------------------- */
+/* updatePlantDetails — usuario corrige info que la IA identificó             */
+/* -------------------------------------------------------------------------- */
+
 export interface PlantDetailsPatch {
   alias?: string
   species?: string
@@ -89,101 +81,127 @@ export interface PlantDetailsPatch {
   notes?: string
 }
 
-/**
- * Persists manual edits the user makes to a plant the AI previously identified.
- * Used both from the scanner flow (after editing the AI suggestion) and from
- * the garden detail view to correct mislabeled plants.
- */
 export async function updatePlantDetails(
   plantId: string,
   patch: PlantDetailsPatch,
 ): Promise<{ ok: boolean; plant?: Plant; error?: string }> {
-  const existing = getPlantById(plantId)
-  if (!existing) {
-    return { ok: false, error: "No encontré esa planta en tu jardín." }
+  const session = await auth()
+  if (!session?.user?.email) {
+    return { ok: false, error: "Tenés que iniciar sesión." }
   }
 
-  // Validate numeric range so the user can't set absurd watering frequencies.
+  // Validamos rango numérico (max/min) antes de tocar la DB.
   const cleanWatering =
     typeof patch.wateringFrequencyDays === "number"
       ? Math.max(1, Math.min(60, Math.round(patch.wateringFrequencyDays)))
       : undefined
 
-  const cleanPatch: Partial<Plant> = {
-    ...(patch.alias !== undefined && { alias: patch.alias.trim() || existing.alias }),
-    ...(patch.species !== undefined && { species: patch.species.trim() || existing.species }),
-    ...(patch.scientificName !== undefined && {
-      scientificName: patch.scientificName.trim() || existing.scientificName,
-    }),
-    ...(patch.category !== undefined && { category: patch.category }),
-    ...(cleanWatering !== undefined && { wateringFrequencyDays: cleanWatering }),
-    ...(patch.lightNeeds !== undefined && { lightNeeds: patch.lightNeeds }),
-    ...(patch.notes !== undefined && { notes: patch.notes }),
+  const updated = await dbUpdatePlantDetails(session.user.email, plantId, {
+    alias: patch.alias?.trim() || undefined,
+    species: patch.species?.trim() || undefined,
+    scientificName: patch.scientificName?.trim() || undefined,
+    category: patch.category,
+    wateringFrequencyDays: cleanWatering,
+    lightNeeds: patch.lightNeeds,
+    notes: patch.notes,
+  })
+  if (!updated) {
+    return { ok: false, error: "No encontré esa planta en tu jardín." }
   }
-
-  const updated = updatePlant(plantId, cleanPatch)
-  if (!updated) return { ok: false, error: "No pude guardar los cambios." }
 
   revalidatePath("/")
   revalidatePath("/jardin")
   return { ok: true, plant: updated }
 }
 
+/* -------------------------------------------------------------------------- */
+/* listPlantsAction — usado por el front para refrescar la lista              */
+/* -------------------------------------------------------------------------- */
+
 export async function listPlantsAction(): Promise<Plant[]> {
-  return getAllPlants()
+  const session = await auth()
+  if (!session?.user?.email) return []
+  return dbGetAllPlants(session.user.email)
 }
+
+/* -------------------------------------------------------------------------- */
+/* waterPlantAction — marca riego en plants + agrega care_log                 */
+/* -------------------------------------------------------------------------- */
 
 export async function waterPlantAction(plantId: string): Promise<{
   ok: boolean
   plant?: Plant
 }> {
-  const now = Date.now()
-  const plant = updatePlant(plantId, { lastWateredAt: now })
+  const session = await auth()
+  if (!session?.user?.email) return { ok: false }
+
+  const plant = await markWatered(session.user.email, plantId)
   if (!plant) return { ok: false }
-  addLog({
-    id: `log_${now}_${Math.random().toString(36).slice(2, 8)}`,
-    plantId,
-    type: "water",
-    timestamp: now,
-    note: "Riego registrado",
-  })
+
+  // Best-effort: si falla el log no rompemos el riego.
+  try {
+    await addCareLog(session.user.email, plantId, "water", "Riego registrado")
+  } catch (error) {
+    console.error("[v0] Error guardando care_log:", error)
+  }
+
   revalidatePath("/")
   revalidatePath("/jardin")
   return { ok: true, plant }
 }
+
+/* -------------------------------------------------------------------------- */
+/* registerPlantAction — sumar al jardín una planta identificada por la IA    */
+/* -------------------------------------------------------------------------- */
 
 export async function registerPlantAction(input: {
   alias: string
   identification: PlantIdentification
   imageUrl?: string
-}): Promise<{ ok: true; plant: Plant }> {
-  const id = `p_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`
-  const plant: Plant = {
-    id,
-    alias: input.alias.trim() || input.identification.species,
-    species: input.identification.species,
-    scientificName: input.identification.scientificName,
-    category: input.identification.category,
-    imageUrl: input.imageUrl || "/plants/monstera.jpg",
-    wateringFrequencyDays: input.identification.wateringFrequencyDays,
-    lightNeeds: input.identification.lightNeeds,
-    createdAt: Date.now(),
-    lastWateredAt: null,
-    notes: input.identification.description,
+}): Promise<{ ok: true; plant: Plant } | { ok: false; error: string }> {
+  const session = await auth()
+  if (!session?.user?.email) {
+    return { ok: false, error: "Tenés que iniciar sesión." }
   }
-  addPlant(plant)
-  revalidatePath("/")
-  revalidatePath("/jardin")
-  return { ok: true, plant }
+
+  try {
+    const plant = await createPlant(session.user.email, {
+      alias: input.alias.trim() || input.identification.species,
+      species: input.identification.species,
+      scientificName: input.identification.scientificName,
+      category: input.identification.category,
+      wateringFrequencyDays: input.identification.wateringFrequencyDays,
+      lightNeeds: input.identification.lightNeeds,
+      imageUrl: input.imageUrl,
+      notes: input.identification.description,
+    })
+    revalidatePath("/")
+    revalidatePath("/jardin")
+    return { ok: true, plant }
+  } catch (error) {
+    console.error("[v0] Error registrando planta:", error)
+    return { ok: false, error: "No pudimos registrar la planta." }
+  }
 }
 
-/**
- * Simulated multimodal identification.
- * In production this would call a vision model (e.g. gemini-3.1-flash-image).
- * For the hackathon prototype we return a plausible identification
- * sampled from a small catalog so the demo flow is reliable offline.
- */
-export async function identifyPlantAction(_imageDataUrl: string): Promise<PlantIdentification> {
+/* -------------------------------------------------------------------------- */
+/* getPlantAction — opcional, por si alguna vista lo necesita en el futuro    */
+/* -------------------------------------------------------------------------- */
+
+export async function getPlantAction(plantId: string): Promise<Plant | null> {
+  const session = await auth()
+  if (!session?.user?.email) return null
+  const plant = await dbGetPlantById(session.user.email, plantId)
+  return plant ?? null
+}
+
+/* -------------------------------------------------------------------------- */
+/* identifyPlantAction — sin cambios, la IA simulada vive 100% in-process     */
+/* -------------------------------------------------------------------------- */
+
+export async function identifyPlantAction(
+  _imageDataUrl: string,
+): Promise<PlantIdentification> {
   await new Promise((r) => setTimeout(r, 1200))
 
   const catalog: PlantIdentification[] = [
@@ -194,7 +212,8 @@ export async function identifyPlantAction(_imageDataUrl: string): Promise<PlantI
       wateringFrequencyDays: 7,
       lightNeeds: "media",
       confidence: 0.94,
-      description: "Tropical de hojas perforadas. Prefiere luz indirecta y sustrato bien drenado.",
+      description:
+        "Tropical de hojas perforadas. Prefiere luz indirecta y sustrato bien drenado.",
     },
     {
       species: "Potus",
@@ -203,7 +222,8 @@ export async function identifyPlantAction(_imageDataUrl: string): Promise<PlantI
       wateringFrequencyDays: 5,
       lightNeeds: "baja",
       confidence: 0.91,
-      description: "Trepadora muy resistente. Tolera poca luz y olvidos de riego.",
+      description:
+        "Trepadora muy resistente. Tolera poca luz y olvidos de riego.",
     },
     {
       species: "Aloe vera",
@@ -212,7 +232,8 @@ export async function identifyPlantAction(_imageDataUrl: string): Promise<PlantI
       wateringFrequencyDays: 14,
       lightNeeds: "alta",
       confidence: 0.96,
-      description: "Suculenta medicinal. Riego escaso, sol directo y suelo arenoso.",
+      description:
+        "Suculenta medicinal. Riego escaso, sol directo y suelo arenoso.",
     },
     {
       species: "Albahaca",
@@ -221,7 +242,8 @@ export async function identifyPlantAction(_imageDataUrl: string): Promise<PlantI
       wateringFrequencyDays: 2,
       lightNeeds: "alta",
       confidence: 0.88,
-      description: "Aromática anual. Necesita sol pleno y riego frecuente sin encharcar.",
+      description:
+        "Aromática anual. Necesita sol pleno y riego frecuente sin encharcar.",
     },
   ]
 

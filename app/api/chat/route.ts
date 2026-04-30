@@ -1,14 +1,22 @@
 import { convertToModelMessages, streamText, tool, stepCountIs, type UIMessage } from "ai"
 import { z } from "zod"
-import { getAllPlants } from "@/lib/store"
+import { auth } from "@/auth"
+import { getAllPlants } from "@/lib/db/plants"
 import { getMendozaWeatherAlert } from "@/lib/weather"
 
 export const maxDuration = 30
 
 export async function POST(req: Request) {
+  const session = await auth()
+  if (!session?.user?.email) {
+    return new Response("Unauthorized", { status: 401 })
+  }
+  const userEmail = session.user.email
+
   const { messages }: { messages: UIMessage[] } = await req.json()
 
-  const plants = getAllPlants().map((p) => ({
+  const plantsRaw = await getAllPlants(userEmail)
+  const plants = plantsRaw.map((p) => ({
     id: p.id,
     alias: p.alias,
     species: p.species,
@@ -87,7 +95,7 @@ ESTILO DE RESPUESTA:
           aliasOrId: z.string().describe("Alias o id de la planta"),
         }),
         execute: async ({ aliasOrId }) => {
-          const all = getAllPlants()
+          const all = await getAllPlants(userEmail)
           const q = aliasOrId.toLowerCase()
           const plant = all.find(
             (p) => p.id.toLowerCase() === q || p.alias.toLowerCase() === q,

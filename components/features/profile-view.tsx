@@ -16,24 +16,6 @@ import { AgentSettingsCard } from "./profile/agent-settings-card"
 import { WeatherLocationCard } from "./profile/weather-location-card"
 import { AccountActions } from "./profile/account-actions"
 
-const STORAGE_KEY = "sb_user_settings"
-
-function loadFromStorage(): UserSettings | null {
-  if (typeof window === "undefined") return null
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY)
-    if (!raw) return null
-    return JSON.parse(raw) as UserSettings
-  } catch {
-    return null
-  }
-}
-
-function saveToStorage(s: UserSettings) {
-  if (typeof window === "undefined") return
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(s))
-}
-
 function isValidEmail(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())
 }
@@ -57,20 +39,23 @@ export function ProfileView({
     }
   }
 
-  // Hydrate name/email/locally-cached settings once we know the user.
+  // Si el server devolvió defaults vacíos y ya tenemos sesión, prellenamos
+  // nombre y mail del usuario logueado para que el form arranque útil.
   useEffect(() => {
-    const stored = loadFromStorage()
-    const next: UserSettings = stored ?? initialSettings
-    if (user && (!next.profile.name || !next.profile.email)) {
-      next.profile = {
-        name: next.profile.name || user.name,
-        email: next.profile.email || user.email,
+    if (!user) return
+    setSettings((prev) => {
+      if (prev.profile.name && prev.profile.email) return prev
+      const next: UserSettings = {
+        ...prev,
+        profile: {
+          name: prev.profile.name || user.name,
+          email: prev.profile.email || user.email,
+        },
       }
-    }
-    setSettings(next)
-    setPristine(next)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id])
+      setPristine(next)
+      return next
+    })
+  }, [user])
 
   const dirty = useMemo(
     () => JSON.stringify(settings) !== JSON.stringify(pristine),
@@ -88,12 +73,11 @@ export function ProfileView({
       return
     }
     startTransition(async () => {
-      const result = await saveSettings(settings, user?.id ?? null)
+      const result = await saveSettings(settings)
       if (!result.ok || !result.settings) {
         toast.error(result.error ?? "No pude guardar los cambios.")
         return
       }
-      saveToStorage(result.settings)
       setSettings(result.settings)
       setPristine(result.settings)
       toast.success("Listo, guardamos tus ajustes en el invernadero.")
@@ -165,5 +149,3 @@ export function ProfileView({
     </div>
   )
 }
-
-

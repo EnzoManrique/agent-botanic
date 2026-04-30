@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation"
 import { GardenView } from "@/components/features/garden-view"
-import { getAllPlants } from "@/lib/store"
+import { getAllPlants } from "@/lib/db/plants"
 import { auth } from "@/auth"
 
 export const metadata = {
@@ -8,14 +8,10 @@ export const metadata = {
 }
 
 export default async function JardinPage() {
-  // Doble protección: el proxy redirige al login, pero por las dudas
-  // chequeamos sesión también acá. Si alguien deshabilita el middleware,
-  // la página sigue siendo segura.
   const session = await auth()
-  if (!session?.user) {
+  if (!session?.user?.email) {
     redirect("/login")
   }
-
-  const plants = getAllPlants()
+  const plants = await getAllPlants(session.user.email)
   return <GardenView initialPlants={plants} />
 }
