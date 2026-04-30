@@ -1,14 +1,20 @@
 import "server-only"
 
 /**
- * Cliente de la API pública de Mercado Libre Argentina (MLA).
+ * Cliente de la API de Mercado Libre Argentina (MLA) con OAuth.
  *
- * No requiere auth para búsquedas de productos. Documentación oficial:
- * https://developers.mercadolibre.com.ar/es_ar/items-y-busquedas
+ * Mercado Libre cerró el acceso anónimo a sus endpoints en 2025: incluso
+ * la búsqueda pública (`/sites/MLA/search`) ahora requiere un Bearer token.
+ * Usamos Client Credentials grant: la app se autentica como app, sin
+ * usuario, y obtiene un token con scope `read` que dura ~6 horas.
  *
- * Para hackathon: un cache super simple en memoria por query (TTL 1h)
- * para evitar pegarle a la API en cada request del agente y para que
- * dos jueces probando el mismo prompt no hagan double-fetch.
+ * Docs: https://developers.mercadolibre.com.ar/es_ar/autenticacion-y-autorizacion
+ *
+ * Cache:
+ * - Access token cacheado en memoria hasta 60s antes de su expiración real.
+ * - Resultados de búsqueda cacheados 1h por (query + limit) para no pegarle
+ *   en cada mensaje del agente y para que dos jueces probando lo mismo no
+ *   hagan double-fetch.
  */
 
 export interface MlProduct {
@@ -36,6 +42,80 @@ interface CacheEntry {
 const CACHE = new Map<string, CacheEntry>()
 const CACHE_TTL_MS = 60 * 60 * 1000 // 1 hora
 
+interface TokenCache {
+  accessToken: string
+  /** Epoch ms en el que el token deja de ser válido. */
+  expiresAt: number
+}
+
+let TOKEN_CACHE: TokenCache | null = null
+
+/**
+ * Obtiene un access token vía Client Credentials. Cachea hasta 60s antes
+ * de la expiración real para evitar usar un token recién vencido. Si las
+ * credenciales no están configuradas, devuelve null y el caller decide
+ * qué hacer (típicamente: devolver array vacío y loggear).
+ */
+async function getAccessToken(): Promise<string | null> {
+  const clientId = process.env.MERCADOLIBRE_CLIENT_ID
+  const clientSecret = process.env.MERCADOLIBRE_CLIENT_SECRET
+  if (!clientId || !clientSecret) {
+    console.error(
+      "[v0] Mercado Libre: faltan MERCADOLIBRE_CLIENT_ID o MERCADOLIBRE_CLIENT_SECRET",
+    )
+    return null
+  }
+
+  // Si tenemos token vigente con margen de 60s, lo devolvemos.
+  if (TOKEN_CACHE && TOKEN_CACHE.expiresAt - 60_000 > Date.now()) {
+    return TOKEN_CACHE.accessToken
+  }
+
+  try {
+    const res = await fetch("https://api.mercadolibre.com/oauth/token", {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: new URLSearchParams({
+        grant_type: "client_credentials",
+        client_id: clientId,
+        client_secret: clientSecret,
+      }).toString(),
+      signal: AbortSignal.timeout(8000),
+    })
+    if (!res.ok) {
+      const errorBody = await res.text().catch(() => "")
+      console.error(
+        "[v0] Mercado Libre OAuth devolvió",
+        res.status,
+        errorBody.slice(0, 200),
+      )
+      return null
+    }
+    const data = (await res.json()) as {
+      access_token?: string
+      expires_in?: number
+    }
+    if (!data.access_token) {
+      console.error("[v0] Mercado Libre OAuth: respuesta sin access_token")
+      return null
+    }
+    // expires_in viene en segundos (típicamente 21600 = 6h). Default a 5h
+    // por las dudas si no viene.
+    const expiresInMs = (data.expires_in ?? 18000) * 1000
+    TOKEN_CACHE = {
+      accessToken: data.access_token,
+      expiresAt: Date.now() + expiresInMs,
+    }
+    return data.access_token
+  } catch (error) {
+    console.error("[v0] Error obteniendo token de Mercado Libre:", error)
+    return null
+  }
+}
+
 /**
  * Busca productos en Mercado Libre Argentina y los devuelve normalizados.
  *
@@ -52,17 +132,16 @@ export async function searchMercadoLibre(
   const q = query.trim()
   if (!q) return []
 
-  // Cache key incluye el limit porque el server podría pedir más después.
-  // El preferred state NO va en la key: el ordenamiento lo hacemos sobre
-  // los resultados ya en memoria, no en la URL del fetch.
   const cacheKey = `${q.toLowerCase()}::${limit}`
   const cached = CACHE.get(cacheKey)
   if (cached && Date.now() - cached.ts < CACHE_TTL_MS) {
     return reorderByState(cached.data, opts.preferredState)
   }
 
-  // MLA = Mercado Libre Argentina. Pedimos el doble del limit para tener
-  // margen al hacer dedup y filtros, y después recortamos.
+  const token = await getAccessToken()
+  if (!token) return []
+
+  // Pedimos el doble del limit para tener margen al filtrar/dedupear.
   const url =
     `https://api.mercadolibre.com/sites/MLA/search?q=${encodeURIComponent(q)}` +
     `&limit=${Math.min(limit * 2, 20)}` +
@@ -71,13 +150,25 @@ export async function searchMercadoLibre(
   let raw: unknown
   try {
     const res = await fetch(url, {
-      // 8s es generoso pero corta en caso de problemas de red para no
-      // dejar al chat colgado. La API suele responder en ~300ms.
       signal: AbortSignal.timeout(8000),
-      headers: { Accept: "application/json" },
+      headers: {
+        Accept: "application/json",
+        Authorization: `Bearer ${token}`,
+      },
     })
     if (!res.ok) {
-      console.error("[v0] Mercado Libre devolvió", res.status)
+      // Si el token quedó inválido por algún motivo (rara vez pasa antes
+      // del expires_in), invalidamos el cache para que la próxima request
+      // pida uno nuevo.
+      if (res.status === 401 || res.status === 403) {
+        TOKEN_CACHE = null
+      }
+      const body = await res.text().catch(() => "")
+      console.error(
+        "[v0] Mercado Libre search devolvió",
+        res.status,
+        body.slice(0, 200),
+      )
       return []
     }
     raw = await res.json()
@@ -129,8 +220,7 @@ function parseMlResponse(raw: unknown): MlProduct[] {
         currency: typeof r.currency_id === "string" ? r.currency_id : "ARS",
         thumbnail:
           typeof r.thumbnail === "string"
-            ? // ML manda thumbs como http inseguro a veces; forzamos https.
-              r.thumbnail.replace(/^http:\/\//, "https://")
+            ? r.thumbnail.replace(/^http:\/\//, "https://")
             : "",
         permalink: typeof r.permalink === "string" ? r.permalink : "",
         state:
@@ -176,8 +266,6 @@ export function extractStateFromCity(city: string | null | undefined): string | 
   if (!city) return null
   const first = city.split(",")[0]?.trim()
   if (!first) return null
-  // Normalizamos "CABA"/"Capital Federal"/"Buenos Aires" al nombre que usa
-  // ML en su campo state_name.
   const lower = first.toLowerCase()
   if (lower === "caba" || lower === "capital federal") return "Capital Federal"
   return first
