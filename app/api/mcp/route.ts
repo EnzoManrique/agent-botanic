@@ -3,10 +3,7 @@ import { resolveMcpToken } from "@/lib/db/mcp-tokens"
 import { getAllPlants } from "@/lib/db/plants"
 import { getUserSettings } from "@/lib/db/settings"
 import { evaluateAlerts, getForecast } from "@/lib/weather"
-import {
-  searchMercadoLibre,
-  extractStateFromCity,
-} from "@/lib/mercadolibre"
+import { searchMercadoLibre } from "@/lib/mercadolibre"
 
 /**
  * Servidor MCP (Model Context Protocol) de Secretary Botanic.
@@ -204,7 +201,7 @@ const TOOLS = {
 
   search_products: {
     description:
-      "Busca productos relacionados con jardinería en Mercado Libre Argentina (fertilizantes, sustratos, macetas, herramientas). Prioriza vendedores en la provincia del usuario para minimizar costos de envío. Devuelve título, precio, ubicación y link.",
+      "Consulta el CATÁLOGO oficial de Mercado Libre Argentina para encontrar fichas de productos de jardinería (fertilizantes, sustratos, macetas, herramientas, semillas). Devuelve foto oficial, nombre canónico, marca, modelo y un link directo a la página del producto en mercadolibre.com.ar donde el cliente puede ver precios actualizados. NO devuelve precios — la API pública de ML los restringe para apps con sólo Client Credentials.",
     inputSchema: {
       type: "object",
       properties: {
@@ -221,7 +218,7 @@ const TOOLS = {
       required: ["query"],
       additionalProperties: false,
     },
-    async execute(input: unknown, ctx: { userEmail: string }) {
+    async execute(input: unknown, _ctx: { userEmail: string }) {
       const query = (input as { query?: string })?.query
       if (!query || typeof query !== "string") {
         throw new Error("query es obligatorio")
@@ -229,15 +226,9 @@ const TOOLS = {
       const limitRaw = (input as { limit?: number })?.limit
       const limit = typeof limitRaw === "number" ? limitRaw : 6
 
-      const settings = await getUserSettings(ctx.userEmail)
-      const preferredState = extractStateFromCity(settings.location.city)
-      const products = await searchMercadoLibre(query, {
-        preferredState,
-        limit,
-      })
+      const products = await searchMercadoLibre(query, { limit })
       return {
         query,
-        preferredState,
         count: products.length,
         products,
       }
