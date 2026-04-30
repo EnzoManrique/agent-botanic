@@ -11,6 +11,10 @@ import { auth } from "@/auth"
 import { getAllPlants } from "@/lib/db/plants"
 import { getUserSettings } from "@/lib/db/settings"
 import { evaluateAlerts, getForecast } from "@/lib/weather"
+import {
+  searchMercadoLibre,
+  extractStateFromCity,
+} from "@/lib/mercadolibre"
 
 export const maxDuration = 30
 
@@ -65,9 +69,9 @@ export async function POST(req: Request) {
 ==========================================================
 LIMITES DE LA CONVERSACION (MUY IMPORTANTE)
 ==========================================================
-Solo respondés temas relacionados a plantas, jardinería, botánica, cuidado de cultivos, sustratos, plagas, riego y clima local que afecte plantas.
+Solo respondés temas relacionados a plantas, jardinería, botánica, cuidado de cultivos, sustratos, plagas, riego, clima local que afecte plantas, e INSUMOS DE JARDINERÍA (fertilizantes, macetas, herramientas, sustratos, semillas).
 
-Si el usuario pregunta CUALQUIER OTRA COSA (programación, matemáticas, política, deportes, recetas que no sean de hierbas, ayuda con tareas escolares, recomendaciones generales de productos, etc.), NO RESPONDAS la pregunta. En su lugar, decí amable y brevemente algo así como:
+Si el usuario pregunta CUALQUIER OTRA COSA (programación, matemáticas, política, deportes, recetas que no sean de hierbas, ayuda con tareas escolares, productos NO relacionados a jardinería —celulares, ropa, etc.—), NO RESPONDAS la pregunta. En su lugar, decí amable y brevemente algo así como:
 
   "Sólo te puedo ayudar con tus plantas y todo lo botánico. ¿Tenés alguna duda sobre tu jardín?"
 
@@ -123,8 +127,9 @@ HERRAMIENTAS DISPONIBLES
 - Si el usuario quiere saber el pronóstico de los próximos días → USÁ getWeatherForecast.
 - Si el usuario pide ver sus plantas o un resumen → USÁ listUserPlants.
 - Si pregunta cuándo regar una planta puntual → USÁ checkWateringSchedule con el alias o id.
+- Si el usuario pide PRECIOS, busca dónde comprar fertilizante / sustrato / maceta / herramienta de jardinería → USÁ searchProducts con un query bien específico (ej "fertilizante para potus", "perlita 5 litros"). La herramienta consulta Mercado Libre Argentina y prioriza vendedores en la provincia del usuario para minimizar envíos. Después de invocarla NO repitas en texto la lista de productos; el cliente los renderiza como cards. Solo agregá una recomendación corta, ej: "El primero está en Mendoza con envío gratis, te conviene ese."
 - Después de usar herramientas, resumí en 2-4 líneas con consejos concretos y accionables.
-- No inventes datos del clima; siempre obtenelos con la herramienta.
+- No inventes datos del clima ni precios; siempre obtenelos con las herramientas.
 
 ==========================================================
 ESTILO DE RESPUESTA
@@ -223,6 +228,37 @@ ESTILO DE RESPUESTA
             wateringFrequencyDays: plant.wateringFrequencyDays,
             daysSinceLastWatering: daysSince,
             needsWater,
+          }
+        },
+      }),
+      searchProducts: tool({
+        description:
+          "Busca productos de jardinería (fertilizantes, sustratos, macetas, herramientas) en Mercado Libre Argentina. Prioriza vendedores en la provincia del usuario para minimizar envíos. El cliente renderiza el resultado como cards visuales — el modelo NO debe repetir la lista en texto.",
+        inputSchema: z.object({
+          query: z
+            .string()
+            .describe(
+              'Búsqueda específica, ej. "fertilizante para potus" o "perlita 5 litros".',
+            ),
+          limit: z
+            .number()
+            .int()
+            .min(1)
+            .max(8)
+            .optional()
+            .describe("Máximo de productos. Default 6."),
+        }),
+        execute: async ({ query, limit }) => {
+          const preferredState = extractStateFromCity(city)
+          const products = await searchMercadoLibre(query, {
+            preferredState,
+            limit: limit ?? 6,
+          })
+          return {
+            query,
+            preferredState,
+            count: products.length,
+            products,
           }
         },
       }),
