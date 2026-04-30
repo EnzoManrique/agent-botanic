@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Secretary Botanic">
+  <!-- Fondo verde de la marca, esquinas redondeadas para PWA -->
+  <rect width="512" height="512" rx="112" fill="#3a6b4a"/>
+
+  <!-- Brote estilizado: tallo + dos hojas simétricas -->
+  <g fill="#f5efe0">
+    <!-- Tallo central -->
+    <path d="M 256 410 C 252 360 252 300 256 240 C 260 300 260 360 256 410 Z"/>
+
+    <!-- Hoja izquierda (curva grande) -->
+    <path d="M 256 280
+             C 220 290 168 282 130 240
+             C 110 200 124 154 160 130
+             C 200 168 232 220 256 280 Z"/>
+
+    <!-- Hoja derecha (curva grande, espejada) -->
+    <path d="M 256 280
+             C 292 290 344 282 382 240
+             C 402 200 388 154 352 130
+             C 312 168 280 220 256 280 Z"/>
+
+    <!-- Hojita superior (centro, más chiquita) -->
+    <path d="M 256 230
+             C 240 220 224 200 224 176
+             C 224 152 240 134 256 130
+             C 272 134 288 152 288 176
+             C 288 200 272 220 256 230 Z"/>
+  </g>
+</svg>
