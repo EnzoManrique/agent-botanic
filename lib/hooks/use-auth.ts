@@ -1,8 +1,8 @@
 "use client"
 
 import { useCallback } from "react"
-import { useSession, signIn, signOut } from "next-auth/react"
-import { registerAction } from "@/lib/actions/auth"
+import { useSession, signOut } from "next-auth/react"
+import { loginAction, registerAction } from "@/lib/actions/auth"
 
 /**
  * Hook que envuelve `useSession` de NextAuth y expone una API similar
@@ -32,19 +32,14 @@ export function useAuth() {
 
   const login = useCallback(
     async (email: string, password: string): Promise<AuthUser> => {
-      const res = await signIn("credentials", {
-        email,
-        password,
-        redirect: false,
-      })
-      if (!res || res.error) {
-        throw new Error(
-          res?.error === "CredentialsSignin"
-            ? "Mail o contraseña incorrectos."
-            : "No pudimos iniciar sesión.",
-        )
+      // Usamos el server action en vez del signIn del cliente, para evitar el
+      // bug de Auth.js v5 beta + Next 16 con HTTPS proxiado en el preview.
+      const result = await loginAction({ email, password })
+      if (!result.ok) {
+        throw new Error(result.error)
       }
-      // Forzamos una actualización para leer la nueva sesión inmediatamente
+      // El cookie de sesión ya está seteado por el server action; pedimos a
+      // useSession que vuelva a leer la sesión.
       const fresh = await update()
       return {
         id: (fresh?.user as { id?: string })?.id ?? "",

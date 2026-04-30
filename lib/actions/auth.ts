@@ -83,7 +83,14 @@ export async function registerAction(input: {
     if (error instanceof AuthError) {
       return { ok: false, error: "Cuenta creada, pero falló el inicio de sesión." }
     }
-    throw error
+    if (
+      error instanceof Error &&
+      (error.message === "NEXT_REDIRECT" || error.message.includes("NEXT_"))
+    ) {
+      throw error
+    }
+    console.error("[v0] Error en signIn post-registro:", error)
+    return { ok: false, error: "Cuenta creada, pero falló el inicio de sesión." }
   }
 }
 
@@ -104,18 +111,25 @@ export async function loginAction(input: {
     })
     return { ok: true }
   } catch (error) {
+    // Auth.js v5 lanza un AuthError cuando las credenciales son inválidas.
     if (error instanceof AuthError) {
-      switch (error.type) {
-        case "CredentialsSignin":
-          return {
-            ok: false,
-            error: "Mail o contraseña incorrectos. Probá de nuevo.",
-          }
-        default:
-          return { ok: false, error: "No pudimos iniciar sesión. Intentá de nuevo." }
+      if (error.type === "CredentialsSignin") {
+        return {
+          ok: false,
+          error: "Mail o contraseña incorrectos. Probá de nuevo.",
+        }
       }
+      return { ok: false, error: "No pudimos iniciar sesión. Intentá de nuevo." }
     }
-    throw error
+    // Next.js usa errores especiales internamente para redirects; los relanzamos.
+    if (
+      error instanceof Error &&
+      (error.message === "NEXT_REDIRECT" || error.message.includes("NEXT_"))
+    ) {
+      throw error
+    }
+    console.error("[v0] Error en loginAction:", error)
+    return { ok: false, error: "No pudimos iniciar sesión. Intentá de nuevo." }
   }
 }
 

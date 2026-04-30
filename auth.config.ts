@@ -8,9 +8,7 @@ import type { NextAuthConfig } from "next-auth"
  * runtime Edge. La lógica pesada (validar contra la base) vive en `auth.ts`.
  */
 
-// Rutas que solo se pueden visitar estando logueado
-const PROTECTED_PREFIXES = ["/jardin", "/perfil", "/agente", "/escanear"]
-// Rutas de auth: si ya estás logueado, no tiene sentido entrar
+// Rutas de auth (públicas). Todo lo demás requiere sesión.
 const AUTH_PREFIXES = ["/login", "/registro", "/olvide-contrasena"]
 
 export const authConfig = {
@@ -22,20 +20,19 @@ export const authConfig = {
       const isLoggedIn = !!auth?.user
       const path = nextUrl.pathname
 
-      const isProtected = PROTECTED_PREFIXES.some((p) => path.startsWith(p))
       const isAuthPage = AUTH_PREFIXES.some((p) => path.startsWith(p))
 
-      // Bloqueá el ingreso a rutas privadas si no hay sesión
-      if (isProtected && !isLoggedIn) {
-        return false // Auth.js redirige a /login automáticamente
+      // Si está en una página de auth y ya tiene sesión, lo mandamos al home
+      if (isAuthPage) {
+        if (isLoggedIn) {
+          return Response.redirect(new URL("/", nextUrl))
+        }
+        return true
       }
 
-      // Si ya está logueado, evitamos que vea login/registro
-      if (isAuthPage && isLoggedIn) {
-        return Response.redirect(new URL("/", nextUrl))
-      }
-
-      return true
+      // Cualquier otra ruta requiere sesión.
+      // Devolver `false` hace que Auth.js redirija a /login automáticamente.
+      return isLoggedIn
     },
     async jwt({ token, user }) {
       // En el primer login, copiamos los datos del usuario al token
