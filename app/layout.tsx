@@ -1,11 +1,15 @@
 import type { Metadata, Viewport } from "next"
-import { Fraunces } from "next/font/google"
+import { Nunito, Fraunces } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import { Toaster } from "@/components/ui/sonner"
 import { AuthSessionProvider } from "@/components/providers/session-provider"
 import "./globals.css"
 
-
+const nunito = Nunito({
+  subsets: ["latin"],
+  variable: "--font-nunito",
+  display: "swap",
+})
 
 const fraunces = Fraunces({
   subsets: ["latin"],
@@ -57,7 +61,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="es" className={`${fraunces.variable} bg-background`}>
+    <html lang="es" className={`${nunito.variable} ${fraunces.variable} bg-background`}>
       <body className="font-sans antialiased">
         <AuthSessionProvider>
           {children}
