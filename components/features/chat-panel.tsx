@@ -35,6 +35,8 @@ import {
   AgentProductCarousel,
   type AgentProduct,
 } from "./agent-product-carousel"
+import ReactMarkdown from "react-markdown"
+import remarkGfm from "remark-gfm"
 
 /** Sugerencias del empty state. Cada una representa una capacidad distinta
  *  del agente para que el usuario descubra todo lo que puede pedirle:
@@ -412,9 +414,25 @@ function MessageBubble({
         {message.parts.map((part, i) => {
           if (part.type === "text") {
             return (
-              <p key={i} className="whitespace-pre-wrap text-pretty">
-                {part.text}
-              </p>
+              <div key={i} className="text-pretty">
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  components={{
+                    p: ({ node, ...props }) => <p className="mb-2 last:mb-0 whitespace-pre-wrap" {...props} />,
+                    a: ({ node, ...props }) => <a className="text-primary font-medium underline underline-offset-4" target="_blank" rel="noreferrer" {...props} />,
+                    strong: ({ node, ...props }) => <strong className="text-foreground font-semibold" {...props} />,
+                    ul: ({ node, ...props }) => <ul className="mb-4 ml-4 list-outside list-disc space-y-1" {...props} />,
+                    ol: ({ node, ...props }) => <ol className="mb-4 ml-4 list-outside list-decimal space-y-1" {...props} />,
+                    li: ({ node, ...props }) => <li className="pl-1" {...props} />,
+                    img: ({ node, ...props }) => <img className="border-border my-2 max-w-full rounded-xl border" alt="imagen" {...props} />,
+                    h1: ({ node, ...props }) => <h1 className="mb-2 mt-4 text-lg font-bold" {...props} />,
+                    h2: ({ node, ...props }) => <h2 className="mb-2 mt-4 text-base font-bold" {...props} />,
+                    h3: ({ node, ...props }) => <h3 className="mb-2 mt-4 text-sm font-bold" {...props} />,
+                  }}
+                >
+                  {part.text}
+                </ReactMarkdown>
+              </div>
             )
           }
           if (
