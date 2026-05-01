@@ -1,0 +1,30 @@
+{
+  "name": "Secretary Botanic",
+  "short_name": "Botanic",
+  "description": "Tu agente de cuidado de plantas con IA",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f5efe0",
+  "theme_color": "#f5efe0",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/apple-touch-icon.jpg",
+      "sizes": "1024x1024",
+      "type": "image/jpeg",
+      "purpose": "any"
+    }
+  ]
+}
