@@ -1,3 +1,5 @@
+import { PwaInstallPrompt } from "@/components/auth/pwa-install-prompt"
+
 export default function AuthLayout({
   children,
 }: Readonly<{
@@ -16,6 +18,7 @@ export default function AuthLayout({
       <div className="relative z-10 flex min-h-[100dvh] flex-col px-5 pt-[calc(2rem+env(safe-area-inset-top))] pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
         {children}
       </div>
+      <PwaInstallPrompt />
     </div>
   )
 }
