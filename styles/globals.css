@@ -1,5 +1,6 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
+@import url('https://fonts.googleapis.com/css2?family=Doto:wght@100..900&display=swap');
 
 @custom-variant dark (&:is(.dark *));
 
@@ -75,7 +76,7 @@
 }
 
 @theme inline {
-  --font-sans: var(--font-doto), 'Geist Fallback', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: 'Doto', ui-sans-serif, system-ui, sans-serif;
   --font-serif: var(--font-fraunces), 'Geist Fallback', ui-serif, Georgia, serif;
   --font-mono: 'Geist Mono', 'Geist Mono Fallback';
   --color-background: var(--background);
