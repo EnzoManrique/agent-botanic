@@ -167,7 +167,7 @@ export function PlantDetailsDialog({
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-md gap-0 overflow-hidden p-0">
           {/* Imagen tope con título superpuesto */}
-          <div className="relative h-48 w-full bg-secondary">
+          <div className="relative h-36 sm:h-48 w-full bg-secondary">
             <Image
               src={plant.imageUrl || "/placeholder.svg"}
               alt={`Foto de ${plant.alias}`}
@@ -188,7 +188,7 @@ export function PlantDetailsDialog({
           </div>
 
           {/* Cuerpo scrollable */}
-          <div className="max-h-[60vh] overflow-y-auto px-5 py-4">
+          <div className="max-h-[50vh] overflow-y-auto px-5 py-4">
             {mode === "view" ? (
               <ViewContent
                 plant={plant}

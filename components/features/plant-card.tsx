@@ -73,7 +73,7 @@ export function PlantCard({
             durante el hydrate. En pantallas grandes el aspect-ratio
             funciona perfecto y le damos más presencia a la foto. Si no
             hay imagen mostramos un fallback con gradient verde + icono. */}
-        <div className="relative h-40 sm:h-auto sm:aspect-[4/3] overflow-hidden bg-gradient-to-br from-primary/15 to-primary/5">
+        <div className="relative w-full shrink-0 h-40 sm:h-auto sm:aspect-[4/3] overflow-hidden bg-gradient-to-br from-primary/15 to-primary/5">
           {plant.imageUrl ? (
             <Image
               src={plant.imageUrl}
