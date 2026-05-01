@@ -6,6 +6,7 @@ import {
   ArrowLeft,
   Bot,
   Check,
+  ChevronRight,
   Copy,
   ExternalLink,
   Key,
@@ -41,6 +42,11 @@ import {
   loadMcpTokensAction,
 } from "@/lib/actions/mcp-tokens"
 import type { McpTokenRow } from "@/lib/db/mcp-tokens"
+import { AppleShortcutsTutorial } from "./integrations/apple-shortcuts-tutorial"
+
+/** Id del nodo de la sección de tokens — lo usamos para scrollear desde el
+ *  tutorial cuando el usuario tiene que volver a generar uno. */
+const TOKENS_SECTION_ID = "tokens-section"
 
 interface Props {
   initialTokens: McpTokenRow[]
@@ -60,6 +66,11 @@ export function IntegrationsView({ initialTokens }: Props) {
   const router = useRouter()
   const [tokens, setTokens] = useState(initialTokens)
   const [origin, setOrigin] = useState("https://tu-dominio.vercel.app")
+
+  /** Tutorial activo en el drawer, o null si no hay ninguno abierto. */
+  const [activeTutorial, setActiveTutorial] = useState<TutorialKey | null>(
+    null,
+  )
 
   // Calculamos el origin real solo en cliente — para que cada usuario vea
   // su propio dominio (preview, prod o localhost) sin que el server tenga
@@ -85,6 +96,16 @@ export function IntegrationsView({ initialTokens }: Props) {
     }
   }
 
+  /** Cuando el usuario pide crear token desde el tutorial: cerramos el
+   *  drawer y scrolleamos a la sección de tokens. */
+  function handleRequestCreateToken() {
+    if (typeof document === "undefined") return
+    requestAnimationFrame(() => {
+      const node = document.getElementById(TOKENS_SECTION_ID)
+      if (node) node.scrollIntoView({ behavior: "smooth", block: "start" })
+    })
+  }
+
   return (
     <div className="mt-[25px] flex flex-col gap-5 pb-4">
       <ScreenHeader
@@ -103,10 +124,23 @@ export function IntegrationsView({ initialTokens }: Props) {
         onChange={refreshTokens}
         origin={origin}
       />
-      <PlatformsSection />
+      <PlatformsSection onOpenTutorial={setActiveTutorial} />
+
+      {/* Drawer del tutorial — controlado desde activeTutorial. Sólo
+          tenemos uno por ahora (Apple Shortcuts), pero la estructura
+          permite agregar más sin tocar la sección de plataformas. */}
+      <AppleShortcutsTutorial
+        open={activeTutorial === "apple-shortcuts"}
+        onOpenChange={(open) => setActiveTutorial(open ? "apple-shortcuts" : null)}
+        origin={origin}
+        hasToken={tokens.length > 0}
+        onRequestCreateToken={handleRequestCreateToken}
+      />
     </div>
   )
 }
+
+type TutorialKey = "apple-shortcuts"
 
 // ---------- Hero ----------
 
@@ -245,7 +279,10 @@ function TokensSection({
   }
 
   return (
-    <section className="mx-5 flex flex-col gap-3 rounded-3xl border-2 border-border bg-card p-5 shadow-soft">
+    <section
+      id={TOKENS_SECTION_ID}
+      className="mx-5 flex flex-col gap-3 rounded-3xl border-2 border-border bg-card p-5 shadow-soft scroll-mt-4"
+    >
       <header className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <Key className="text-primary size-4" aria-hidden="true" />
@@ -435,7 +472,6 @@ const PLATFORMS: PlatformCardData[] = [
       "Cualquier app o script que pueda hablar HTTP+JSON puede conectarse hoy. Mirá el ejemplo curl arriba.",
     icon: Terminal,
     status: "live",
-    accent: false,
   },
   {
     name: "Claude Desktop",
@@ -443,15 +479,14 @@ const PLATFORMS: PlatformCardData[] = [
       "Pegá el endpoint MCP en la config de Claude y vas a poder preguntarle a Claude por tu jardín.",
     icon: Bot,
     status: "live",
-    accent: false,
   },
   {
     name: "Apple Shortcuts",
     description:
-      "Con Shortcuts armás un atajo que llama tu MCP y le decís a Siri 'mis plantas'. Compatible vía HTTP.",
+      "Hacé que Siri te diga qué plantas regar hoy. Tocá para ver el tutorial paso a paso.",
     icon: Smartphone,
     status: "live",
-    accent: false,
+    tutorial: "apple-shortcuts",
   },
   {
     name: "WhatsApp Bot",
@@ -459,7 +494,6 @@ const PLATFORMS: PlatformCardData[] = [
       "Pedile a Botanic por mensaje qué regar mañana o que te recomiende un fertilizante. En desarrollo.",
     icon: MessageCircle,
     status: "soon",
-    accent: false,
   },
   {
     name: "Google Home",
@@ -467,7 +501,6 @@ const PLATFORMS: PlatformCardData[] = [
       "“Hey Google, ¿qué tengo que regar hoy?”. Próximamente, integración nativa.",
     icon: Speaker,
     status: "soon",
-    accent: false,
   },
   {
     name: "Alexa",
@@ -475,11 +508,14 @@ const PLATFORMS: PlatformCardData[] = [
       "Skill de Alexa para consultar tu jardín y alertas climáticas con voz. Próximamente.",
     icon: Mic,
     status: "soon",
-    accent: false,
   },
 ]
 
-function PlatformsSection() {
+function PlatformsSection({
+  onOpenTutorial,
+}: {
+  onOpenTutorial: (key: TutorialKey) => void
+}) {
   return (
     <section className="mx-5 flex flex-col gap-3">
       <header>
@@ -492,7 +528,11 @@ function PlatformsSection() {
       </header>
       <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
         {PLATFORMS.map((p) => (
-          <PlatformCard key={p.name} platform={p} />
+          <PlatformCard
+            key={p.name}
+            platform={p}
+            onOpenTutorial={onOpenTutorial}
+          />
         ))}
       </ul>
     </section>
@@ -504,20 +544,25 @@ interface PlatformCardData {
   description: string
   icon: typeof Terminal
   status: "live" | "soon"
-  accent: boolean
+  /** Si está seteado, la card es clickable y abre el tutorial correspondiente. */
+  tutorial?: TutorialKey
 }
 
-function PlatformCard({ platform }: { platform: PlatformCardData }) {
-  const { icon: Icon, status, name, description } = platform
+function PlatformCard({
+  platform,
+  onOpenTutorial,
+}: {
+  platform: PlatformCardData
+  onOpenTutorial: (key: TutorialKey) => void
+}) {
+  const { icon: Icon, status, name, description, tutorial } = platform
   const isLive = status === "live"
+  const hasTutorial = Boolean(tutorial)
 
-  return (
-    <li
-      className={cn(
-        "flex flex-col gap-2 rounded-2xl border-2 border-border bg-card p-4 shadow-soft transition-colors",
-        isLive ? "hover:border-primary/40" : "opacity-80",
-      )}
-    >
+  // Cuando hay tutorial, la card entera es un botón. Cuando no, es un
+  // <li> visual estático (con opacity reducida si está "Pronto").
+  const Inner = (
+    <>
       <div className="flex items-center justify-between gap-2">
         <span
           aria-hidden="true"
@@ -545,6 +590,42 @@ function PlatformCard({ platform }: { platform: PlatformCardData }) {
       <p className="text-xs leading-snug text-muted-foreground text-pretty">
         {description}
       </p>
+      {hasTutorial ? (
+        <span className="text-primary mt-1 inline-flex items-center gap-1 text-xs font-semibold">
+          Ver tutorial
+          <ChevronRight className="size-3.5" aria-hidden="true" />
+        </span>
+      ) : null}
+    </>
+  )
+
+  if (hasTutorial && tutorial) {
+    return (
+      <li className="contents">
+        <button
+          type="button"
+          onClick={() => onOpenTutorial(tutorial)}
+          className={cn(
+            "flex flex-col gap-2 rounded-2xl border-2 border-border bg-card p-4 text-left shadow-soft transition-colors",
+            "hover:border-primary/60 hover:bg-secondary/30",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+          )}
+          aria-label={`Abrir tutorial de ${name}`}
+        >
+          {Inner}
+        </button>
+      </li>
+    )
+  }
+
+  return (
+    <li
+      className={cn(
+        "flex flex-col gap-2 rounded-2xl border-2 border-border bg-card p-4 shadow-soft transition-colors",
+        isLive ? "hover:border-primary/40" : "opacity-80",
+      )}
+    >
+      {Inner}
     </li>
   )
 }

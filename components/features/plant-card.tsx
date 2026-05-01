@@ -67,11 +67,13 @@ export function PlantCard({
         className="flex flex-1 flex-col text-left rounded-3xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         aria-label={`Ver detalles de ${plant.alias}`}
       >
-        {/* Banner compacto: en mobile usamos aspect-[16/9] (más finito tipo
-            "banner") y en pantallas grandes lo ampliamos a [4/3] que da más
-            presencia a la foto. Si no hay imagen mostramos un fallback con
-            gradient verde + icono — nunca queda un hueco gris vacío. */}
-        <div className="relative aspect-[16/9] sm:aspect-[4/3] overflow-hidden bg-gradient-to-br from-primary/15 to-primary/5">
+        {/* Banner compacto: en mobile forzamos h-40 (160px) porque
+            aspect-ratio en algunos Safari mobile colapsa la altura a 0
+            cuando el contenedor padre no tiene width definido todavía
+            durante el hydrate. En pantallas grandes el aspect-ratio
+            funciona perfecto y le damos más presencia a la foto. Si no
+            hay imagen mostramos un fallback con gradient verde + icono. */}
+        <div className="relative h-40 sm:h-auto sm:aspect-[4/3] overflow-hidden bg-gradient-to-br from-primary/15 to-primary/5">
           {plant.imageUrl ? (
             <Image
               src={plant.imageUrl}
@@ -146,29 +148,57 @@ export function PlantCard({
       </button>
 
       <div className="px-4 pb-4">
-        <Button
-          onClick={(e) => {
-            e.stopPropagation()
-            onWater(plant.id)
-          }}
-          disabled={isPending}
-          variant={needsWater ? "default" : "secondary"}
-          size="sm"
-          className="w-full rounded-2xl font-semibold"
-          aria-label={`${careMeta.actionVerb} ${plant.alias}`}
-        >
-          {isPending ? (
-            <>
-              <Spinner className="size-4" />
-              <span className="truncate">Registrando...</span>
-            </>
-          ) : (
-            <>
-              <CareIcon className="size-4" aria-hidden="true" />
-              <span className="truncate">{careMeta.actionVerb}</span>
-            </>
-          )}
-        </Button>
+        {/* El botón queda deshabilitado entre ciclos: una vez registrado el
+            cuidado, no se puede volver a tocar hasta que pasen los días de
+            frecuencia de la planta. Esto evita registros duplicados ("le di
+            agua hoy y volví a tocar" rompía el historial) y comunica visual
+            mente cuánto falta para la próxima vez con un texto claro tipo
+            "En 6 días". */}
+        {(() => {
+          const daysUntilNext =
+            days === null
+              ? 0
+              : Math.max(0, plant.wateringFrequencyDays - days)
+          const disabled = isPending || !needsWater
+
+          let label: string
+          if (isPending) {
+            label = "Registrando..."
+          } else if (needsWater) {
+            label = careMeta.actionVerb
+          } else if (daysUntilNext === 1) {
+            label = "Mañana"
+          } else {
+            label = `En ${daysUntilNext} días`
+          }
+
+          return (
+            <Button
+              onClick={(e) => {
+                e.stopPropagation()
+                onWater(plant.id)
+              }}
+              disabled={disabled}
+              variant={needsWater ? "default" : "secondary"}
+              size="sm"
+              className="w-full rounded-2xl font-semibold disabled:opacity-100"
+              aria-label={
+                needsWater
+                  ? `${careMeta.actionVerb} ${plant.alias}`
+                  : `Próximo cuidado de ${plant.alias} en ${daysUntilNext} ${
+                      daysUntilNext === 1 ? "día" : "días"
+                    }`
+              }
+            >
+              {isPending ? (
+                <Spinner className="size-4" />
+              ) : (
+                <CareIcon className="size-4" aria-hidden="true" />
+              )}
+              <span className="truncate">{label}</span>
+            </Button>
+          )
+        })()}
       </div>
     </article>
   )

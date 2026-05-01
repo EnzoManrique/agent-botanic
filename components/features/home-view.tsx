@@ -20,7 +20,7 @@ import { WeatherBanner } from "./weather-banner"
 import { ScreenHeader } from "@/components/mobile/screen-header"
 import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
-import { ALL_LOCATIONS, LOCATION_META } from "@/lib/plant-meta"
+import { ALL_LOCATIONS, LOCATION_META, WATERING_MODE_META } from "@/lib/plant-meta"
 import type { Plant, PlantLocation, WeatherAlert } from "@/lib/types"
 import type { ProactiveAdvice } from "@/lib/proactive-advisor"
 import { cn } from "@/lib/utils"
@@ -44,7 +44,7 @@ export function HomeView({
   extraAlerts?: WeatherAlert[]
   advice?: ProactiveAdvice | null
 }) {
-  const { plants, needsWatering, waterPlant, isPending } =
+  const { plants, needsWatering, waterPlant, pendingPlantId } =
     usePlantManager(initialPlants)
 
   return (
@@ -132,7 +132,7 @@ export function HomeView({
                 key={plant.id}
                 plant={plant}
                 onWater={() => waterPlant(plant.id)}
-                isPending={isPending}
+                isPending={pendingPlantId === plant.id}
               />
             ))}
           </ul>
@@ -277,6 +277,33 @@ function WaterRow({
   const overdueBy =
     days === null ? null : Math.max(0, days - plant.wateringFrequencyDays)
 
+  // Resolvemos el modo de cuidado de cada planta para que el CTA respete
+  // si es "Regar", "Cambiar agua", "Pulverizar" o "Renovar solución" — antes
+  // estaba todo hardcodeado a "Regar" y rompía la coherencia con la card de
+  // jardín cuando la planta vivía en agua.
+  const careMeta = WATERING_MODE_META[plant.wateringMode]
+  const CareIcon = careMeta.icon
+
+  // Texto idle: el usuario no debería leer "Sin regar todavía" para una
+  // planta que vive en un florero — eso confunde más de lo que ayuda.
+  const idleLabel =
+    plant.wateringMode === "water"
+      ? "Sin cambiar el agua todavía"
+      : plant.wateringMode === "hydroponic"
+        ? "Sin renovar solución todavía"
+        : plant.wateringMode === "mist"
+          ? "Sin pulverizar todavía"
+          : "Sin regar todavía"
+
+  const todayLabel =
+    plant.wateringMode === "water"
+      ? "Toca cambiar el agua"
+      : plant.wateringMode === "hydroponic"
+        ? "Toca renovar la solución"
+        : plant.wateringMode === "mist"
+          ? "Toca pulverizar"
+          : "Toca regar hoy"
+
   return (
     <li className="flex items-center gap-3 rounded-3xl border-2 border-border bg-card p-3 shadow-soft">
       <div className="relative size-14 shrink-0 overflow-hidden rounded-2xl border-2 border-border bg-secondary">
@@ -286,6 +313,7 @@ function WaterRow({
           fill
           sizes="56px"
           className="object-cover"
+          unoptimized={plant.imageUrl?.startsWith("data:")}
         />
       </div>
       <div className="min-w-0 flex-1">
@@ -304,10 +332,10 @@ function WaterRow({
           )}
         >
           {days === null
-            ? "Sin regar todavía"
+            ? idleLabel
             : overdueBy && overdueBy > 0
               ? `Atrasada ${overdueBy} ${overdueBy === 1 ? "día" : "días"}`
-              : "Toca regar hoy"}
+              : todayLabel}
         </p>
       </div>
       <Button
@@ -315,14 +343,14 @@ function WaterRow({
         onClick={onWater}
         disabled={isPending}
         className="rounded-2xl font-semibold"
-        aria-label={`Regar a ${plant.alias}`}
+        aria-label={`${careMeta.actionVerb} a ${plant.alias}`}
       >
         {isPending ? (
           <Spinner className="size-4" />
         ) : (
-          <Droplets className="size-4" aria-hidden="true" />
+          <CareIcon className="size-4" aria-hidden="true" />
         )}
-        Regar
+        {careMeta.actionVerb}
       </Button>
     </li>
   )

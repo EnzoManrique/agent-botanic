@@ -15,6 +15,7 @@ import {
 } from "@/lib/db/plants"
 import { addCareLog } from "@/lib/db/care-logs"
 import { sql } from "@/lib/db"
+import { humanizeAiError, tryModelsInOrder } from "@/lib/ai-retry"
 import type {
   Plant,
   PlantCategory,
@@ -362,9 +363,10 @@ export async function identifyPlantAction(
     return { ok: false, error: "La imagen no es válida." }
   }
 
-  // 2) Llamada directa a Gemini (sin pasar por AI Gateway).
-  // Usamos GOOGLE_GENERATIVE_AI_API_KEY que se obtiene gratis en
-  // https://aistudio.google.com/app/apikey — 1500 requests gratis al día.
+  // 2) Llamada directa a Google AI Studio. Probamos AI Gateway de Vercel
+  // pero requiere tarjeta de crédito incluso para los créditos gratis,
+  // mientras que la API de Google AI Studio da ~1500 req/día gratis sin
+  // tarjeta. La key se obtiene en https://aistudio.google.com/app/apikey.
   if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
     return {
       ok: false,
@@ -377,24 +379,30 @@ export async function identifyPlantAction(
   })
 
   try {
-    const { output } = await generateText({
-      // gemini-2.5-flash: multimodal, rápido y dentro del free tier.
-      model: google("gemini-2.5-flash"),
-      system: SYSTEM_PROMPT,
-      output: Output.object({ schema: IdentificationSchema }),
-      messages: [
-        {
-          role: "user",
-          content: [
+    // Intentamos primero con gemini-2.5-flash (mejor visión y comprensión
+    // botánica) y caemos a gemini-2.0-flash si está saturado. Los dos
+    // modelos son multimodales y comparten el free tier de Google.
+    const { output } = await tryModelsInOrder(
+      [google("gemini-2.5-flash"), google("gemini-2.0-flash")],
+      (model) =>
+        generateText({
+          model,
+          system: SYSTEM_PROMPT,
+          output: Output.object({ schema: IdentificationSchema }),
+          messages: [
             {
-              type: "text",
-              text: "Identificá la planta de esta foto. Si no hay una planta, marcá isPlant=false.",
+              role: "user",
+              content: [
+                {
+                  type: "text",
+                  text: "Identificá la planta de esta foto. Si no hay una planta, marcá isPlant=false.",
+                },
+                { type: "image", image: imageDataUrl },
+              ],
             },
-            { type: "image", image: imageDataUrl },
           ],
-        },
-      ],
-    })
+        }),
+    )
 
     if (!output.isPlant) {
       return {
@@ -412,11 +420,9 @@ export async function identifyPlantAction(
     // Logueamos detalle completo para poder diagnosticar (403 del gateway,
     // schema violation, timeout, etc).
     console.error("[v0] Error identificando planta:", error)
-    const message =
-      error instanceof Error ? error.message : "error desconocido"
     return {
       ok: false,
-      error: `El agente botánico no pudo procesar la foto (${message.slice(0, 80)}). Probá de nuevo.`,
+      error: humanizeAiError(error),
     }
   }
 }

@@ -18,14 +18,16 @@ export function PlantGrid({
   currentCategory,
   onWater,
   onOpen,
-  isPending,
+  pendingPlantId,
 }: {
   plants: Plant[]
   groupedByCategory: Record<PlantCategory, Plant[]>
   currentCategory: GardenFilter
   onWater: (id: string) => void
   onOpen: (plant: Plant) => void
-  isPending?: boolean
+  /** Id de la planta cuya acción de cuidado se está registrando ahora.
+   *  Sólo esa card muestra el spinner; las otras quedan disponibles. */
+  pendingPlantId?: string | null
 }) {
   // Cuando el filtro es "all" mostramos todo el jardín; si no, filtramos.
   const visiblePlants =
@@ -74,7 +76,7 @@ export function PlantGrid({
               plant={p}
               onWater={onWater}
               onOpen={onOpen}
-              isPending={isPending}
+              isPending={pendingPlantId === p.id}
             />
           ))}
         </div>
