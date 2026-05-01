@@ -165,7 +165,7 @@ export function PlantDetailsDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-md gap-0 overflow-hidden p-0">
+        <DialogContent className="w-[92vw] sm:max-w-sm gap-0 overflow-hidden p-0 rounded-3xl">
           {/* Imagen tope con título superpuesto */}
           <div className="relative h-36 sm:h-48 w-full bg-secondary">
             <Image

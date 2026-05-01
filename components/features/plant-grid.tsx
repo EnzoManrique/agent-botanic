@@ -29,9 +29,24 @@ export function PlantGrid({
    *  Sólo esa card muestra el spinner; las otras quedan disponibles. */
   pendingPlantId?: string | null
 }) {
+  // Calculamos si una planta necesita riego para ordenarla primero
+  function needsWater(p: Plant) {
+    if (!p.lastWateredAt) return true
+    const days = Math.floor((Date.now() - p.lastWateredAt) / (1000 * 60 * 60 * 24))
+    return days >= p.wateringFrequencyDays
+  }
+
   // Cuando el filtro es "all" mostramos todo el jardín; si no, filtramos.
-  const visiblePlants =
+  // Ordenamos para que las que necesitan riego aparezcan primero.
+  const visiblePlants = (
     currentCategory === "all" ? plants : (groupedByCategory[currentCategory] ?? [])
+  ).sort((a, b) => {
+    const aNeeds = needsWater(a)
+    const bNeeds = needsWater(b)
+    if (aNeeds && !bNeeds) return -1
+    if (!aNeeds && bNeeds) return 1
+    return 0 // Mantener el orden original entre los de un mismo grupo
+  })
 
   // Headline contextual del estado vacío.
   const emptyTitle =
@@ -47,10 +62,9 @@ export function PlantGrid({
           return `Sin plantas en ${meta.label.toLowerCase()}. ${meta.description} Escaneá una para empezar.`
         })()
 
-  // pt compensa el navbar fijo de arriba: header de una sola fila
-  // (icono + título + contador) + chips. Si el navbar crece, ajustar acá.
+  // pt compensa la diferencia con el layout principal y el navbar fijo.
   return (
-    <div className="px-5 pb-2 pt-[124px]">
+    <div className="px-5 pb-2 pt-10">
       {visiblePlants.length === 0 ? (
         <Empty className="rounded-3xl border-2 border-dashed border-border bg-card/50 py-12">
           <EmptyHeader>
