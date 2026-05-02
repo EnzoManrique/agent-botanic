@@ -92,7 +92,7 @@ export function WeatherBanner({ alert, advice }: WeatherBannerProps) {
                 : "bg-primary/10 hover:bg-primary/20 border-primary/10"
             )}
           >
-            <a href={`/chat?p=${encodeURIComponent(advice.chatPrompt)}`}>
+            <a href={`/agente?prompt=${encodeURIComponent(advice.chatPrompt)}`}>
               <MessageSquare className="size-4" />
               Hablarlo con el agente
             </a>
