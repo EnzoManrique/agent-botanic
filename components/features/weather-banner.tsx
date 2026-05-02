@@ -1,6 +1,8 @@
-import { Snowflake, Sun, Wind, Leaf, CloudHail } from "lucide-react"
+import { Snowflake, Sun, Wind, Leaf, CloudHail, Sparkles, MessageSquare } from "lucide-react"
 import type { WeatherAlert } from "@/lib/types"
+import type { ProactiveAdvice } from "@/lib/proactive-advisor"
 import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
 
 const ICONS: Record<WeatherAlert["type"], React.ElementType> = {
   zonda: Wind,
@@ -16,28 +18,35 @@ const STYLES = {
   low: "bg-secondary text-secondary-foreground border-border",
 } as const
 
-export function WeatherBanner({ alert }: { alert: WeatherAlert }) {
+interface WeatherBannerProps {
+  alert: WeatherAlert
+  advice?: ProactiveAdvice | null
+}
+
+export function WeatherBanner({ alert, advice }: WeatherBannerProps) {
   const Icon = ICONS[alert.type]
   const isAlert = alert.severity !== "low"
+  
+  // Si hay consejo personalizado, usamos el titular del consejo para el banner
+  const displayTitle = advice ? advice.headline : alert.title
 
   return (
     <section
       role="status"
       aria-live="polite"
       className={cn(
-        "mx-5 rounded-3xl border-2 px-5 py-4 shadow-soft",
+        "mx-5 rounded-3xl border-2 px-5 py-4 shadow-soft transition-all duration-500",
         STYLES[alert.severity],
       )}
     >
       {/* Header: Title + Icon */}
       <div className="flex items-start justify-between gap-4 mb-2">
-        <p className="font-serif text-lg leading-tight font-semibold text-balance flex-1">
-          {alert.title}
+        <p className="font-serif text-lg leading-tight font-bold text-balance flex-1">
+          {displayTitle}
         </p>
-        {/* Icon on the right */}
         <div
           className={cn(
-            "flex size-12 shrink-0 items-center justify-center rounded-2xl border-2",
+            "flex size-12 shrink-0 items-center justify-center rounded-2xl border-2 transition-transform active:scale-95",
             isAlert
               ? "border-accent-foreground/20 bg-accent-foreground/10"
               : "border-primary/20 bg-primary/10",
@@ -48,26 +57,62 @@ export function WeatherBanner({ alert }: { alert: WeatherAlert }) {
       </div>
 
       {/* Location badge */}
-      <span
-        className={cn(
-          "inline-block rounded-full border px-2.5 py-0.5 text-xs font-semibold tracking-wide uppercase mb-3",
-          isAlert
-            ? "border-accent-foreground/20 bg-accent-foreground/10"
-            : "border-foreground/15 bg-foreground/5",
+      <div className="flex flex-wrap items-center gap-2 mb-4">
+        <span
+          className={cn(
+            "inline-block rounded-full border px-2.5 py-0.5 text-[10px] font-bold tracking-wider uppercase",
+            isAlert
+              ? "border-accent-foreground/20 bg-accent-foreground/10"
+              : "border-foreground/15 bg-foreground/5",
+          )}
+        >
+          {alert.location}
+        </span>
+        {advice && (
+          <span className="flex items-center gap-1.5 rounded-full bg-primary/20 border border-primary/20 px-2.5 py-0.5 text-[10px] font-bold tracking-wider uppercase text-primary-foreground">
+            <Sparkles className="size-3" />
+            Consejo del Agente
+          </span>
         )}
-      >
-        {alert.location}
-      </span>
+      </div>
 
       {/* Body content */}
-      <p className="text-sm leading-relaxed opacity-90 mb-2">
-        {alert.description}
+      {advice ? (
+        <div className="space-y-3">
+          <p className="text-sm leading-relaxed font-medium">
+            {advice.message}
+          </p>
+          <Button
+            asChild
+            variant="ghost"
+            className={cn(
+              "w-full justify-start gap-2 h-auto py-3 px-4 rounded-2xl border-2 font-semibold text-xs",
+              isAlert
+                ? "bg-accent-foreground/10 hover:bg-accent-foreground/20 border-accent-foreground/10"
+                : "bg-primary/10 hover:bg-primary/20 border-primary/10"
+            )}
+          >
+            <a href={`/chat?p=${encodeURIComponent(advice.chatPrompt)}`}>
+              <MessageSquare className="size-4" />
+              Hablarlo con el agente
+            </a>
+          </Button>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          <p className="text-sm leading-relaxed opacity-90">
+            {alert.description}
+          </p>
+          <p className="text-sm leading-relaxed">
+            <span className="font-semibold text-xs uppercase tracking-tight opacity-70">Recomendación: </span>
+            {alert.recommendation}
+          </p>
+        </div>
+      )}
+      
+      <p className="mt-3 text-[10px] font-medium opacity-50 text-right">
+        Vigente hasta {alert.validUntil}
       </p>
-      <p className="text-sm leading-relaxed">
-        <span className="font-semibold">Recomendación: </span>
-        {alert.recommendation}
-      </p>
-      <p className="mt-2 text-xs opacity-70">Vigente hasta {alert.validUntil}</p>
     </section>
   )
 }

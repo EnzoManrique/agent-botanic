@@ -64,13 +64,11 @@ export function HomeView({
         }
       />
 
-      <WeatherBanner alert={weather} />
+      <WeatherBanner alert={weather} advice={advice} />
 
       {extraAlerts.length > 0 ? (
         <ExtraAlertsList alerts={extraAlerts} />
       ) : null}
-
-      {advice ? <ProactiveAdviceCard advice={advice} /> : null}
 
       <section className="grid grid-cols-2 gap-3 px-5">
         <StatCard

@@ -101,18 +101,70 @@ export function buildProactiveAdvice(
   alerts: WeatherAlert[],
   plants: Plant[],
 ): ProactiveAdvice | null {
-  // Tomamos la alerta más urgente que NO sea "calm".
+  // 1. Alerta más severa (prioridad: high > medium > low)
   const ranked = [...alerts].sort((a, b) => {
     const score = (s: WeatherAlert["severity"]) =>
       s === "high" ? 2 : s === "medium" ? 1 : 0
     return score(b.severity) - score(a.severity)
   })
-  const trigger = ranked.find((a) => a.type !== "calm")
+  const trigger = ranked[0]
   if (!trigger) return null
 
-  const affected = plantsAffected(plants, trigger.type)
-  // Si el usuario aún no tiene plantas o ninguna está en riesgo concreto,
-  // todavía es útil mostrar consejo general en alta severidad.
+  // 2. Plantas afectadas directamente por el clima severo
+  const affected = trigger.type === "calm" ? [] : plantsAffected(plants, trigger.type)
+
+  // 3. Lógica de lluvia preventiva (independiente de alertas críticas)
+  const isRainingTomorrow = (trigger.precipitationTomorrow || 0) >= 5
+  const exteriorPlants = plants.filter((p) => p.location === "exterior")
+
+  if (trigger.type === "calm" && isRainingTomorrow && exteriorPlants.length > 0) {
+    const sample = exteriorPlants.slice(0, 2).map((p) => p.alias)
+    const sampleStr = sample.join(" y ")
+    return {
+      headline: `Mañana llueve: no riegues hoy.`,
+      message: `Se esperan lluvias para mañana. Tus plantas de exterior como ${sampleStr} ya tendrán agua natural, mejor ahorrá el riego hoy.`,
+      severity: "low",
+      affectedPlants: exteriorPlants.length,
+      chatPrompt: `Mañana va a llover. ¿Tengo que entrar a mis plantas de exterior?`,
+    }
+  }
+
+  // 4. Si es clima calmo y no llueve, damos un consejo de mantenimiento
+  if (trigger.type === "calm") {
+    // Si no tiene plantas, no damos consejo
+    if (plants.length === 0) return null
+
+    // Buscamos alguna planta que necesite atención o damos uno general
+    const needsWater = plants.filter((p) => {
+      if (!p.lastWateredAt) return true
+      const daysSince = (Date.now() - p.lastWateredAt) / (1000 * 60 * 60 * 24)
+      return daysSince >= p.wateringFrequencyDays
+    })
+
+    if (needsWater.length > 0) {
+      const p = needsWater[0]
+      return {
+        headline: `Día estable: toca cuidar a ${p.alias}.`,
+        message: `El clima está ideal para dedicarle unos minutos a tu jardín. A ${p.alias} ya le toca su ${p.wateringMode === "soil" ? "riego" : "mantenimiento"} programado.`,
+        severity: "low",
+        affectedPlants: needsWater.length,
+        chatPrompt: `¿Cómo está el clima hoy para regar mis plantas?`,
+      }
+    }
+
+    // Consejo genérico pero con nombre de planta
+    const randomPlant = plants[Math.floor(Math.random() * plants.length)]
+    return {
+      headline: `Clima ideal para tus plantas.`,
+      message: `Hoy es un gran día para observar el crecimiento de ${randomPlant.alias} y limpiar sus hojas para que respire mejor.`,
+      severity: "low",
+      affectedPlants: 1,
+      chatPrompt: `Dame un consejo de cuidado para ${randomPlant.alias} hoy.`,
+    }
+  }
+
+  // 5. Casos de alertas críticas (Zonda, Helada, Ola de Calor, Granizo)
+  // Si no hay plantas afectadas y la alerta no es alta, no mostramos nada
   if (affected.length === 0 && trigger.severity !== "high") return null
 
   const sample = affected.slice(0, 3).map((p) => p.alias)
@@ -133,15 +185,15 @@ export function buildProactiveAdvice(
     case "zonda":
       headline =
         affected.length > 0
-          ? `Viene Zonda: protegé ${sampleStr}.`
+          ? `Viene Zonda: protegé a ${sampleStr}.`
           : `Viene Zonda. Asegurá tus plantas.`
-      message = `${affected.length === 0 ? "Tus plantas en exterior están" : `${affected.length} ${affected.length === 1 ? "planta tuya está" : "plantas tuyas están"}`} en riesgo de deshidratarse con las ráfagas secas. ${trigger.recommendation}`
+      message = `${affected.length === 0 ? "Tus plantas en exterior están" : `${affected.length} ${affected.length === 1 ? "planta tuya está" : "plantas tuyas están"}`} en riesgo por las ráfagas secas. ${trigger.recommendation}`
       chatPrompt = `Viene Zonda en ${trigger.location}. ¿Cómo protejo a ${sampleStr}?`
       break
     case "frost":
       headline =
         affected.length > 0
-          ? `Helada en camino: cubrí ${sampleStr}.`
+          ? `Helada en camino: cubrí a ${sampleStr}.`
           : `Helada esta noche. Cuidado con tus plantas afuera.`
       message = `${affected.length === 0 ? "Las plantas que tengas afuera" : `${affected.length} ${affected.length === 1 ? "planta sensible al frío te queda" : "plantas sensibles al frío te quedan"}`} sin abrigo. ${trigger.recommendation}`
       chatPrompt = `Va a haber helada esta noche. ¿Qué hago con ${sampleStr}?`
@@ -149,17 +201,17 @@ export function buildProactiveAdvice(
     case "heatwave":
       headline =
         affected.length > 0
-          ? `Día caluroso: regá temprano a ${sampleStr}.`
+          ? `Ola de calor: regá a ${sampleStr}.`
           : `Día muy caluroso. Cuidado con tus plantas afuera.`
-      message = `${affected.length === 0 ? "Las plantas en cubierto y exterior" : `${affected.length} ${affected.length === 1 ? "planta puede sufrir" : "plantas pueden sufrir"}`} con la máxima prevista. ${trigger.recommendation}`
+      message = `${affected.length === 0 ? "Las plantas en exterior" : `${affected.length} ${affected.length === 1 ? "planta puede sufrir" : "plantas pueden sufrir"}`} con la máxima prevista. ${trigger.recommendation}`
       chatPrompt = `Hoy hace mucho calor. ¿Cuándo y cómo riego a ${sampleStr}?`
       break
     case "hail":
       headline =
         affected.length > 0
-          ? `Granizo: metelas adentro a ${sampleStr}.`
+          ? `Granizo: resguardá a ${sampleStr}.`
           : `Posible granizo en la zona.`
-      message = `${affected.length === 0 ? "Si tenés plantas afuera" : `${affected.length} ${affected.length === 1 ? "planta tuya está" : "plantas tuyas están"} a la intemperie y`} pueden romperse con el granizo. ${trigger.recommendation}`
+      message = `${affected.length === 0 ? "Si tenés plantas afuera" : `${affected.length} ${affected.length === 1 ? "planta tuya está" : "plantas tuyas están"} a la intemperie y`} pueden romperse. ${trigger.recommendation}`
       chatPrompt = `Hay alerta de granizo. ¿Cómo protejo a ${sampleStr}?`
       break
     default:

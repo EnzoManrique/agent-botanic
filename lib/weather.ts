@@ -238,6 +238,7 @@ export async function getForecast(
 export function evaluateAlerts(
   forecast: Forecast,
   prefs: WeatherAlertPreferences,
+  precipTomorrow = 0,
 ): WeatherAlert[] {
   const today = forecast.daily[0]
   const tomorrow = forecast.daily[1]
@@ -307,6 +308,7 @@ export function evaluateAlerts(
           "Regá temprano por la mañana o al anochecer. Movés las plantas de hoja delicada lejos de ventanas con sol directo del mediodía.",
         location: forecast.location.label,
         validUntil: candidate === today ? "Hoy 22:00" : "Mañana 22:00",
+        precipitationTomorrow: precipTomorrow,
       })
     }
   }
@@ -341,6 +343,7 @@ export function evaluateAlerts(
         "Día tranquilo para revisar el sustrato, rotar macetas y observar nuevas hojas.",
       location: forecast.location.label,
       validUntil: "Hoy 23:59",
+      precipitationTomorrow: precipTomorrow,
     })
   }
 
@@ -368,8 +371,8 @@ export async function getMendozaWeatherAlert(
   prefs: WeatherAlertPreferences = ALL_ALERTS_ON,
 ): Promise<WeatherAlert> {
   try {
-    const forecast = await getForecast(city, prefs.lat, prefs.lng)
-    const alerts = evaluateAlerts(forecast, prefs)
+    const forecast = await getForecast(city, (prefs as any).lat, (prefs as any).lng)
+    const alerts = evaluateAlerts(forecast, prefs, forecast.daily[1]?.precipitationMm || 0)
     return alerts[0]
   } catch (error) {
     console.error("[v0] Error obteniendo clima real, fallback a calmo:", error)
@@ -396,6 +399,6 @@ export async function getWeatherSummary(
   prefs: WeatherAlertPreferences & { lat?: number; lng?: number } = ALL_ALERTS_ON,
 ): Promise<{ forecast: Forecast; alerts: WeatherAlert[] }> {
   const forecast = await getForecast(city, prefs.lat, prefs.lng)
-  const alerts = evaluateAlerts(forecast, prefs)
+  const alerts = evaluateAlerts(forecast, prefs, forecast.daily[1]?.precipitationMm || 0)
   return { forecast, alerts }
 }

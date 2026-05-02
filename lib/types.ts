@@ -75,6 +75,7 @@ export interface WeatherAlert {
   recommendation: string
   location: string
   validUntil: string
+  precipitationTomorrow?: number
 }
 
 export interface PlantIdentification {
