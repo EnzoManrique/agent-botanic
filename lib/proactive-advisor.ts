@@ -187,36 +187,58 @@ export function buildProactiveAdvice(
         affected.length > 0
           ? `Viene Zonda: protegé a ${sampleStr}.`
           : `Viene Zonda. Asegurá tus plantas.`
-      message = `${affected.length === 0 ? "Tus plantas en exterior están" : `${affected.length} ${affected.length === 1 ? "planta tuya está" : "plantas tuyas están"}`} en riesgo por las ráfagas secas. ${trigger.recommendation}`
+      
+      message = affected.length === 0 
+        ? "Las fuertes ráfagas secas pueden deshidratar tus plantas. Si tenés alguna afuera, movela a un lugar resguardado o asegurá sus tutores."
+        : `Tus ${affected.length === 1 ? "planta" : "plantas"} en exterior corren riesgo de deshidratarse. Llevá adentro lo que puedas y asegurá los tutores.`
+      
       chatPrompt = `Viene Zonda en ${trigger.location}. ¿Cómo protejo a ${sampleStr}?`
       break
+      
     case "frost":
       headline =
         affected.length > 0
           ? `Helada en camino: cubrí a ${sampleStr}.`
-          : `Helada esta noche. Cuidado con tus plantas afuera.`
-      message = `${affected.length === 0 ? "Las plantas que tengas afuera" : `${affected.length} ${affected.length === 1 ? "planta sensible al frío te queda" : "plantas sensibles al frío te quedan"}`} sin abrigo. ${trigger.recommendation}`
+          : `Helada esta noche. Cuidado con el frío.`
+          
+      message = affected.length === 0
+        ? "Se esperan temperaturas bajo cero. Si tenés plantas delicadas afuera, cubrilas con una manta o film transparente y evitá regar al atardecer."
+        : `${affected.length === 1 ? "Tenés una planta sensible" : `Tenés ${affected.length} plantas sensibles`} al frío a la intemperie. Cubrilas con tela antihelada o metelas adentro esta noche.`
+        
       chatPrompt = `Va a haber helada esta noche. ¿Qué hago con ${sampleStr}?`
       break
+      
     case "heatwave":
       headline =
         affected.length > 0
           ? `Ola de calor: regá a ${sampleStr}.`
-          : `Día muy caluroso. Cuidado con tus plantas afuera.`
-      message = `${affected.length === 0 ? "Las plantas en exterior" : `${affected.length} ${affected.length === 1 ? "planta puede sufrir" : "plantas pueden sufrir"}`} con la máxima prevista. ${trigger.recommendation}`
+          : `Día muy caluroso. Cuidado con el sol.`
+          
+      message = affected.length === 0
+        ? "Las altas temperaturas pueden marchitar el follaje. Asegurate de regar temprano por la mañana o al anochecer."
+        : `El calor intenso puede afectar a tus plantas. Tratá de regar a ${sampleStr} temprano a la mañana o lejos del sol directo.`
+        
       chatPrompt = `Hoy hace mucho calor. ¿Cuándo y cómo riego a ${sampleStr}?`
       break
+      
     case "hail":
       headline =
         affected.length > 0
           ? `Granizo: resguardá a ${sampleStr}.`
           : `Posible granizo en la zona.`
-      message = `${affected.length === 0 ? "Si tenés plantas afuera" : `${affected.length} ${affected.length === 1 ? "planta tuya está" : "plantas tuyas están"} a la intemperie y`} pueden romperse. ${trigger.recommendation}`
+          
+      message = affected.length === 0
+        ? "El pronóstico indica posible caída de granizo. Tapá las macetas exteriores con cajones o telas gruesas si podés."
+        : `Tus plantas a la intemperie corren riesgo de romperse. Intentá resguardar a ${sampleStr} o cubrilas con algo resistente.`
+        
       chatPrompt = `Hay alerta de granizo. ¿Cómo protejo a ${sampleStr}?`
       break
+      
     default:
       headline = trigger.title
-      message = `${trigger.description} ${trigger.recommendation}`
+      message = affected.length === 0 
+        ? trigger.description 
+        : `Alerta climática que podría afectar a ${sampleStr}. ${trigger.description}`
       chatPrompt = `Contame qué hago con mi jardín ante esta alerta: ${trigger.title}`
   }
 
