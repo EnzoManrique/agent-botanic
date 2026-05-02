@@ -288,7 +288,7 @@ export function evaluateAlerts(
             : "Helada prevista para mañana",
         description: `Mínima estimada de ${Math.round(candidate.tempMinC)} °C ${fmtDay(candidate)} a la madrugada.`,
         recommendation:
-          "Cubrí suculentas y comestibles con manta o film transparente. Evitá regar al atardecer para que la raíz no quede encharcada y se congele.",
+          "Cubrí las plantas más vulnerables con manta o film transparente. Evitá regar al atardecer para que la raíz no quede encharcada y se congele.",
         location: forecast.location.label,
         validUntil: candidate === today ? "Mañana 08:00" : "Pasado 08:00",
       })
@@ -305,7 +305,7 @@ export function evaluateAlerts(
         title: "Ola de calor",
         description: `Máxima prevista de ${Math.round(candidate.tempMaxC)} °C ${fmtDay(candidate)}.`,
         recommendation:
-          "Regá temprano por la mañana o al anochecer. Movés las plantas de hoja delicada lejos de ventanas con sol directo del mediodía.",
+          "Regá temprano por la mañana o al anochecer. Movés las plantas más delicadas lejos del sol directo del mediodía.",
         location: forecast.location.label,
         validUntil: candidate === today ? "Hoy 22:00" : "Mañana 22:00",
         precipitationTomorrow: precipTomorrow,

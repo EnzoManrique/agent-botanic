@@ -12,6 +12,7 @@ import { getAllPlants } from "@/lib/db/plants"
 import { getUserSettings } from "@/lib/db/settings"
 import { evaluateAlerts, getForecast } from "@/lib/weather"
 import { searchMercadoLibre } from "@/lib/mercadolibre"
+import { buildProactiveAdvice } from "@/lib/proactive-advisor"
 
 export const maxDuration = 30
 
@@ -78,6 +79,15 @@ CONTEXTO DEL USUARIO
 - En cada planta el campo "location" indica DÓNDE vive físicamente: interior (adentro de casa), cubierto (galería/balcón techado), exterior (a la intemperie), invernadero. Esto importa para alertas climáticas: solo las que están en exterior o cubierto reciben viento, helada, calor; solo las exterior reciben granizo y lluvia directa.
 - Alertas climáticas activadas en su perfil: ${JSON.stringify(alertPrefs)}.
 - Si una alerta está desactivada, NO la menciones de manera proactiva, salvo que el usuario la pregunte explícitamente.
+
+==========================================================
+PERSONALIZACION OBLIGATORIA DEL JARDIN (CRITICO)
+==========================================================
+- ¡SOS PROACTIVO! Conocés el jardín del usuario y debés usar esa información en TODAS tus respuestas.
+- Cuando des un consejo climático o de riego, DEBÉS referirte a sus plantas por su nombre/alias exacto (ej: "Felipe", "Monstera").
+- Explicá cómo cada situación (clima, alerta) afecta a SUS plantas específicamente según si están en exterior, cubierto o interior.
+- PROHIBIDO dar recomendaciones generales y anónimas ("cubrí las plantas vulnerables"). Siempre debés decir "cubrí a [Nombre de Planta] porque está en el exterior/cubierto" o "a [Nombre de Planta] dejala como está porque al estar en interior no le afecta".
+- Si no tiene plantas afectadas por el clima, aclará que su jardín está a salvo debido a su ubicación.
 
 ==========================================================
 CAPACIDADES MULTIMODALES
@@ -168,6 +178,7 @@ ESTILO DE RESPUESTA
           try {
             const forecast = await getForecast(city)
             const alerts = evaluateAlerts(forecast, alertPrefs)
+            const proactiveAdvice = buildProactiveAdvice(alerts, plantsRaw as any)
             return {
               location: forecast.location.label,
               now: {
@@ -176,6 +187,7 @@ ESTILO DE RESPUESTA
                 windKmh: Math.round(forecast.current.windKmh),
               },
               alerts,
+              proactiveAdvice,
               preferencesUsed: alertPrefs,
             }
           } catch (err) {

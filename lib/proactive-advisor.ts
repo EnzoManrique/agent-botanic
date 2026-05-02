@@ -170,7 +170,7 @@ export function buildProactiveAdvice(
   const sample = affected.slice(0, 3).map((p) => p.alias)
   const sampleStr =
     sample.length === 0
-      ? "tus plantas"
+      ? "mis plantas"
       : sample.length === 1
         ? sample[0]
         : sample.length === 2
