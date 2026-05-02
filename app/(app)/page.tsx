@@ -25,7 +25,11 @@ export default async function Home() {
   try {
     const summary = await getWeatherSummary(
       settings.location.city,
-      settings.location.alerts,
+      {
+        ...settings.location.alerts,
+        lat: settings.location.lat,
+        lng: settings.location.lng,
+      },
     )
     alerts = summary.alerts
     primaryAlert = alerts[0]

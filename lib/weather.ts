@@ -116,17 +116,34 @@ interface OpenMeteoResponse {
   }
 }
 
-export async function getForecast(rawCity?: string): Promise<Forecast> {
+export async function getForecast(
+  rawCity?: string,
+  lat?: number,
+  lng?: number,
+): Promise<Forecast> {
   const city = (rawCity ?? "Mendoza, Argentina").trim()
 
-  // 1. Resolver coordenadas
+  // 1. Resolver coordenadas (si no vienen dadas)
   let geo: GeocodingResult | null = null
-  try {
-    geo = await geocode(city)
-  } catch {
-    geo = null
+
+  if (lat !== undefined && lng !== undefined) {
+    // Si tenemos lat/lng, solo necesitamos el label para la UI
+    // (podríamos intentar geocoding inverso, pero por ahora re-usamos el label guardado o city)
+    geo = {
+      name: city.split(",")[0],
+      country: "",
+      latitude: lat,
+      longitude: lng,
+      timezone: "auto",
+    }
+  } else {
+    try {
+      geo = await geocode(city)
+    } catch {
+      geo = null
+    }
+    if (!geo) geo = MENDOZA_FALLBACK
   }
-  if (!geo) geo = MENDOZA_FALLBACK
 
   // 2. Fetch del forecast a 3 días
   const url = new URL("https://api.open-meteo.com/v1/forecast")
@@ -351,7 +368,7 @@ export async function getMendozaWeatherAlert(
   prefs: WeatherAlertPreferences = ALL_ALERTS_ON,
 ): Promise<WeatherAlert> {
   try {
-    const forecast = await getForecast(city)
+    const forecast = await getForecast(city, prefs.lat, prefs.lng)
     const alerts = evaluateAlerts(forecast, prefs)
     return alerts[0]
   } catch (error) {
@@ -376,9 +393,9 @@ export async function getMendozaWeatherAlert(
  */
 export async function getWeatherSummary(
   city = "Mendoza, Argentina",
-  prefs: WeatherAlertPreferences = ALL_ALERTS_ON,
+  prefs: WeatherAlertPreferences & { lat?: number; lng?: number } = ALL_ALERTS_ON,
 ): Promise<{ forecast: Forecast; alerts: WeatherAlert[] }> {
-  const forecast = await getForecast(city)
+  const forecast = await getForecast(city, prefs.lat, prefs.lng)
   const alerts = evaluateAlerts(forecast, prefs)
   return { forecast, alerts }
 }

@@ -113,6 +113,8 @@ export interface UserSettings {
   }
   location: {
     city: string
+    lat?: number
+    lng?: number
     alerts: WeatherAlertPreferences
     tempUnit: TempUnit
   }

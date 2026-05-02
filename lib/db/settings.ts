@@ -26,6 +26,8 @@ type SettingsRow = {
   alert_heatwave: boolean
   alert_watering_reminder: boolean
   temp_unit: string
+  latitude?: number | null
+  longitude?: number | null
 }
 
 const PERSONALITIES: AgentPersonality[] = ["scientist", "friendly", "guru"]
@@ -62,6 +64,8 @@ function rowToSettings(row: SettingsRow): UserSettings {
       tempUnit: UNITS.includes(row.temp_unit as TempUnit)
         ? (row.temp_unit as TempUnit)
         : "celsius",
+      lat: row.latitude ?? undefined,
+      lng: row.longitude ?? undefined,
     },
   }
 }
@@ -73,7 +77,8 @@ export async function getUserSettings(
   const rows = (await sql`
     SELECT user_email, profile_name, profile_email, agent_personality,
            advice_frequency, city, alert_zonda, alert_frost, alert_hail,
-           alert_heatwave, alert_watering_reminder, temp_unit
+           alert_heatwave, alert_watering_reminder, temp_unit,
+           latitude, longitude
     FROM user_settings
     WHERE user_email = ${userEmail}
     LIMIT 1
@@ -95,7 +100,8 @@ export async function upsertUserSettings(
     INSERT INTO user_settings (
       user_email, profile_name, profile_email, agent_personality,
       advice_frequency, city, alert_zonda, alert_frost, alert_hail,
-      alert_heatwave, alert_watering_reminder, temp_unit, updated_at
+      alert_heatwave, alert_watering_reminder, temp_unit, updated_at,
+      latitude, longitude
     ) VALUES (
       ${userEmail},
       ${settings.profile.name},
@@ -109,7 +115,9 @@ export async function upsertUserSettings(
       ${settings.location.alerts.heatwave},
       ${settings.location.alerts.wateringReminder},
       ${settings.location.tempUnit},
-      CURRENT_TIMESTAMP
+      CURRENT_TIMESTAMP,
+      ${settings.location.lat ?? null},
+      ${settings.location.lng ?? null}
     )
     ON CONFLICT (user_email) DO UPDATE SET
       profile_name = EXCLUDED.profile_name,
@@ -123,10 +131,13 @@ export async function upsertUserSettings(
       alert_heatwave = EXCLUDED.alert_heatwave,
       alert_watering_reminder = EXCLUDED.alert_watering_reminder,
       temp_unit = EXCLUDED.temp_unit,
+      latitude = EXCLUDED.latitude,
+      longitude = EXCLUDED.longitude,
       updated_at = CURRENT_TIMESTAMP
     RETURNING user_email, profile_name, profile_email, agent_personality,
               advice_frequency, city, alert_zonda, alert_frost, alert_hail,
-              alert_heatwave, alert_watering_reminder, temp_unit
+              alert_heatwave, alert_watering_reminder, temp_unit,
+              latitude, longitude
   `) as SettingsRow[]
   return rowToSettings(rows[0])
 }

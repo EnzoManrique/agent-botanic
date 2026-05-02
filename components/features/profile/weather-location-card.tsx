@@ -24,6 +24,7 @@ import {
   InputGroupInput,
 } from "@/components/ui/input-group"
 import { SettingsSection } from "./settings-section"
+import { LocationSearch } from "./location-search"
 import type { TempUnit, UserSettings, WeatherAlertPreferences } from "@/lib/types"
 import { cn } from "@/lib/utils"
 
@@ -92,19 +93,14 @@ export function WeatherLocationCard({
       <FieldGroup>
         <Field>
           <FieldLabel htmlFor="weather-city">Ciudad</FieldLabel>
-          <InputGroup>
-            <InputGroupAddon>
-              <MapPin className="size-4" aria-hidden="true" />
-            </InputGroupAddon>
-            <InputGroupInput
-              id="weather-city"
-              type="text"
-              autoComplete="address-level2"
-              placeholder="Mendoza, Argentina"
-              value={location.city}
-              onChange={(e) => onChange({ ...location, city: e.target.value })}
-            />
-          </InputGroup>
+          <LocationSearch
+            value={location.city}
+            lat={location.lat}
+            lng={location.lng}
+            onChange={(city, lat, lng) =>
+              onChange({ ...location, city, lat, lng })
+            }
+          />
         </Field>
 
         <Field>

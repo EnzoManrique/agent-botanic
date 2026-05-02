@@ -57,6 +57,8 @@ export async function saveSettings(
         city:
           (patch.location?.city ?? current.location.city).trim().slice(0, 120) ||
           DEFAULT_USER_SETTINGS.location.city,
+        lat: patch.location?.lat ?? current.location.lat,
+        lng: patch.location?.lng ?? current.location.lng,
         alerts: {
           zonda:
             patch.location?.alerts?.zonda ?? current.location.alerts.zonda,
