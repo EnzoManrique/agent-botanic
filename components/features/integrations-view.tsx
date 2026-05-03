@@ -43,6 +43,8 @@ import {
 } from "@/lib/actions/mcp-tokens"
 import type { McpTokenRow } from "@/lib/db/mcp-tokens"
 import { AppleShortcutsTutorial } from "./integrations/apple-shortcuts-tutorial"
+import { DeveloperTutorial } from "./integrations/developer-tutorial"
+import { ClaudeDesktopTutorial } from "./integrations/claude-desktop-tutorial"
 
 /** Id del nodo de la sección de tokens — lo usamos para scrollear desde el
  *  tutorial cuando el usuario tiene que volver a generar uno. */
@@ -127,8 +129,7 @@ export function IntegrationsView({ initialTokens }: Props) {
       <PlatformsSection onOpenTutorial={setActiveTutorial} />
 
       {/* Drawer del tutorial — controlado desde activeTutorial. Sólo
-          tenemos uno por ahora (Apple Shortcuts), pero la estructura
-          permite agregar más sin tocar la sección de plataformas. */}
+          tenemos uno abierto a la vez. */}
       <AppleShortcutsTutorial
         open={activeTutorial === "apple-shortcuts"}
         onOpenChange={(open) => setActiveTutorial(open ? "apple-shortcuts" : null)}
@@ -136,11 +137,21 @@ export function IntegrationsView({ initialTokens }: Props) {
         hasToken={tokens.length > 0}
         onRequestCreateToken={handleRequestCreateToken}
       />
+      <DeveloperTutorial
+        open={activeTutorial === "developer"}
+        onOpenChange={(open) => setActiveTutorial(open ? "developer" : null)}
+        origin={origin}
+      />
+      <ClaudeDesktopTutorial
+        open={activeTutorial === "claude-desktop"}
+        onOpenChange={(open) => setActiveTutorial(open ? "claude-desktop" : null)}
+        origin={origin}
+      />
     </div>
   )
 }
 
-type TutorialKey = "apple-shortcuts"
+type TutorialKey = "apple-shortcuts" | "developer" | "claude-desktop"
 
 // ---------- Hero ----------
 
@@ -472,6 +483,7 @@ const PLATFORMS: PlatformCardData[] = [
       "Cualquier app o script que pueda hablar HTTP+JSON puede conectarse hoy. Mirá el ejemplo curl arriba.",
     icon: Terminal,
     status: "live",
+    tutorial: "developer",
   },
   {
     name: "Claude Desktop",
@@ -479,6 +491,7 @@ const PLATFORMS: PlatformCardData[] = [
       "Pegá el endpoint MCP en la config de Claude y vas a poder preguntarle a Claude por tu jardín.",
     icon: Bot,
     status: "live",
+    tutorial: "claude-desktop",
   },
   {
     name: "Apple Shortcuts",

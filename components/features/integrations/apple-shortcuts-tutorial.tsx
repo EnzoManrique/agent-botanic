@@ -160,89 +160,64 @@ function Steps({ origin }: { origin: string }) {
     <ol className="flex flex-col gap-3">
       <Step
         number={1}
-        title="Abrí la app Atajos"
-        body="Buscá la app llamada Atajos (en inglés, Shortcuts) en tu iPhone. Tiene un ícono violeta con dos formas geométricas. Si no la encontrás, deslizá el dedo hacia abajo en la pantalla de inicio y escribí “Atajos” en el buscador."
+        title="Creá un atajo nuevo"
+        body="Abrí la app Atajos en tu iPhone (tiene un ícono violeta). Tocá el botón + arriba a la derecha. Luego tocá “Agregar acción”, buscá URL y elegí “Obtener contenido de URL”."
       />
 
       <Step
         number={2}
-        title="Tocá el botón + arriba a la derecha"
-        body="Eso crea un atajo nuevo. Te va a abrir una pantalla en blanco con el botón “Agregar acción” en el medio."
-      />
-
-      <Step
-        number={3}
-        title="Buscá la acción “Obtener contenido de URL”"
-        body="Tocá “Agregar acción”, escribí URL en el buscador y elegí la opción “Obtener contenido de URL”. Es la que tiene un ícono de globo terráqueo."
-      />
-
-      <Step
-        number={4}
-        title="Elegí qué poder querés darle a Siri y pegá la URL"
-        body="Botanic tiene 3 comandos de voz distintos. Elegí el que más te guste y pegá su dirección en el campo URL de Atajos. (Podés repetir este tutorial para crear un atajo distinto para cada uno)."
+        title="Elegí un comando y pegá la dirección"
+        body="Botanic tiene 3 comandos. Elegí el que más te guste y pegalo en el campo URL de tu nuevo atajo."
       >
         <div className="flex flex-col gap-3 mt-1">
           <div className="rounded-xl border border-border p-3 bg-card/50 shadow-sm">
-            <h5 className="font-bold text-sm mb-1 text-primary">💧 Comando: ¿Qué riego hoy?</h5>
-            <p className="text-xs text-muted-foreground mb-2">Siri te dirá qué plantas exactas necesitan agua hoy.</p>
+            <h5 className="font-bold text-sm mb-1 text-primary">💧 ¿Qué riego hoy?</h5>
+            <p className="text-xs text-muted-foreground mb-2">Siri te dirá qué plantas necesitan agua hoy.</p>
             <CopyBlock value={`${origin}/api/voice?q=regar`} label="URL para Riego" />
           </div>
 
           <div className="rounded-xl border border-border p-3 bg-card/50 shadow-sm">
-            <h5 className="font-bold text-sm mb-1 text-primary">🌤️ Comando: Clima y Alertas</h5>
-            <p className="text-xs text-muted-foreground mb-2">Siri te dará el pronóstico y avisará si hay riesgo para tus plantas.</p>
+            <h5 className="font-bold text-sm mb-1 text-primary">🌤️ Clima y Alertas</h5>
+            <p className="text-xs text-muted-foreground mb-2">Siri te avisará si hay riesgo para tus plantas.</p>
             <CopyBlock value={`${origin}/api/voice?q=clima`} label="URL para Clima" />
           </div>
 
           <div className="rounded-xl border border-border p-3 bg-card/50 shadow-sm">
-            <h5 className="font-bold text-sm mb-1 text-primary">🌿 Comando: Resumen del Jardín</h5>
-            <p className="text-xs text-muted-foreground mb-2">Siri te dirá cuántas plantas tenés guardadas en total.</p>
+            <h5 className="font-bold text-sm mb-1 text-primary">🌿 Resumen del Jardín</h5>
+            <p className="text-xs text-muted-foreground mb-2">Siri te dirá cuántas plantas tenés guardadas.</p>
             <CopyBlock value={`${origin}/api/voice?q=plantas`} label="URL para Resumen" />
           </div>
         </div>
       </Step>
 
       <Step
-        number={5}
-        title="Tocá la flechita ▸ al lado de “Obtener contenido de URL”"
-        body="Eso abre opciones avanzadas. Donde dice “Método” cambialo de GET a GET (ya está así por defecto, no hace falta tocarlo). Después bajá hasta encontrar “Encabezados”."
-      />
-
-      <Step
-        number={6}
-        title="Agregá un encabezado con tu token"
-        body='Tocá “Agregar nuevo encabezado”. En “Clave” escribí Authorization. En “Texto” escribí Bearer seguido de un espacio y después tu token (que copiaste antes).'
+        number={3}
+        title="Dale permiso a Siri (tu llave secreta)"
+        body="Tocá la flechita ▸ (opciones avanzadas) al lado del campo URL. Bajá hasta “Encabezados” y tocá “Agregar nuevo encabezado”."
       >
         <CopyBlock
           value="Authorization"
-          label="Clave (Key)"
+          label="1. Pegá esto donde dice 'Clave' o 'Key'"
         />
         <CopyBlock
           value="Bearer botanic_TU_TOKEN_ACA"
-          label="Valor (Value)"
+          label="2. Pegá esto donde dice 'Texto' o 'Value'"
         />
         <p className="mt-2 text-xs leading-relaxed text-muted-foreground text-pretty">
-          Reemplazá <strong>botanic_TU_TOKEN_ACA</strong> con el token que
-          generaste en la sección de arriba.
+          Ojo: reemplazá <strong>botanic_TU_TOKEN_ACA</strong> por el token que generaste más arriba, dejando el espacio después de Bearer.
         </p>
       </Step>
 
       <Step
-        number={7}
-        title="Agregá una segunda acción: “Hablar texto”"
-        body="Volvé a tocar “Agregar acción” (abajo de todo), buscá Hablar y elegí “Hablar texto”. Esa acción va a leer en voz alta lo que la URL devolvió."
+        number={4}
+        title="Hacé que Siri hable"
+        body="Volvé a tocar “Agregar acción” abajo de todo, buscá Hablar y elegí “Hablar texto”."
       />
 
       <Step
-        number={8}
-        title="Renombrá el atajo"
-        body='Tocá el ícono de configuración (la flechita o el nombre de arriba) y poné un nombre claro tipo “Mis plantas” o “Qué riego hoy”. Ese va a ser el nombre que le decís a Siri.'
-      />
-
-      <Step
-        number={9}
-        title="Listo, guardalo"
-        body="Tocá “Listo” arriba a la derecha. Tu atajo ya está vivo en tu iPhone."
+        number={5}
+        title="Ponele nombre y guardalo"
+        body="Tocá el nombre arriba de todo y ponele algo como “Mis plantas”. Ese es el nombre mágico que le vas a decir a Siri. ¡Tocá Listo y ya está!"
       />
     </ol>
   )
