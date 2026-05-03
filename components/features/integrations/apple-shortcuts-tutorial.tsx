@@ -102,7 +102,7 @@ export function AppleShortcutsTutorial({
               }}
             />
           ) : null}
-          <Steps voiceUrl={voiceUrl} />
+          <Steps origin={origin} />
           <FinalSection />
         </div>
       </DrawerContent>
@@ -155,7 +155,7 @@ function NeedTokenSection({ onCreate }: { onCreate: () => void }) {
   )
 }
 
-function Steps({ voiceUrl }: { voiceUrl: string }) {
+function Steps({ origin }: { origin: string }) {
   return (
     <ol className="flex flex-col gap-3">
       <Step
@@ -178,21 +178,28 @@ function Steps({ voiceUrl }: { voiceUrl: string }) {
 
       <Step
         number={4}
-        title="Pegá esta dirección en el campo URL"
+        title="Elegí qué poder querés darle a Siri y pegá la URL"
+        body="Botanic tiene 3 comandos de voz distintos. Elegí el que más te guste y pegá su dirección en el campo URL de Atajos. (Podés repetir este tutorial para crear un atajo distinto para cada uno)."
       >
-        <CopyBlock value={voiceUrl} label="Dirección de tu jardín" />
-        <p className="mt-2 text-xs leading-relaxed text-muted-foreground text-pretty">
-          Esa es la dirección donde vive tu jardín. Si querés que el atajo
-          te diga otra cosa, podés cambiar el final por{" "}
-          <code className="bg-secondary rounded px-1 font-mono text-[10px]">
-            ?q=plantas
-          </code>{" "}
-          o{" "}
-          <code className="bg-secondary rounded px-1 font-mono text-[10px]">
-            ?q=clima
-          </code>
-          .
-        </p>
+        <div className="flex flex-col gap-3 mt-1">
+          <div className="rounded-xl border border-border p-3 bg-card/50 shadow-sm">
+            <h5 className="font-bold text-sm mb-1 text-primary">💧 Comando: ¿Qué riego hoy?</h5>
+            <p className="text-xs text-muted-foreground mb-2">Siri te dirá qué plantas exactas necesitan agua hoy.</p>
+            <CopyBlock value={`${origin}/api/voice?q=regar`} label="URL para Riego" />
+          </div>
+
+          <div className="rounded-xl border border-border p-3 bg-card/50 shadow-sm">
+            <h5 className="font-bold text-sm mb-1 text-primary">🌤️ Comando: Clima y Alertas</h5>
+            <p className="text-xs text-muted-foreground mb-2">Siri te dará el pronóstico y avisará si hay riesgo para tus plantas.</p>
+            <CopyBlock value={`${origin}/api/voice?q=clima`} label="URL para Clima" />
+          </div>
+
+          <div className="rounded-xl border border-border p-3 bg-card/50 shadow-sm">
+            <h5 className="font-bold text-sm mb-1 text-primary">🌿 Comando: Resumen del Jardín</h5>
+            <p className="text-xs text-muted-foreground mb-2">Siri te dirá cuántas plantas tenés guardadas en total.</p>
+            <CopyBlock value={`${origin}/api/voice?q=plantas`} label="URL para Resumen" />
+          </div>
+        </div>
       </Step>
 
       <Step
