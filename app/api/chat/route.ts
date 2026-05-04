@@ -13,6 +13,7 @@ import { getUserSettings } from "@/lib/db/settings"
 import { evaluateAlerts, getForecast } from "@/lib/weather"
 import { searchMercadoLibre } from "@/lib/mercadolibre"
 import { buildProactiveAdvice } from "@/lib/proactive-advisor"
+import { cookies } from "next/headers"
 
 export const maxDuration = 30
 
@@ -66,7 +67,7 @@ export async function POST(req: Request) {
   
   CRITICAL: You MUST respond to the user EXCLUSIVELY in ${targetLanguage}. 
   Even if the user speaks another language, or if previous messages in this chat are in a different language, you MUST use ${targetLanguage} for your response.
-  If the user speaks ${language === "en" ? "English" : "Spanish"}, respond naturally in ${targetLanguage}.`
+  If the user speaks ${language === "en" ? "English" : "Spanish"}, respond naturally in ${targetLanguage}.
 
   ==========================================================
   CONVERSATION SCOPE (VERY IMPORTANT)
