@@ -11,21 +11,23 @@ import { cn } from "@/lib/utils"
 // elemento (sólo "Escanear" tenía `accent`) y romper en el `tab.accent`.
 interface TabConfig {
   href: string
-  label: string
+  tKey: string
   icon: LucideIcon
-  /** Si es true, el tab se renderiza con el estilo "Escanear" destacado. */
   accent?: boolean
 }
 
 const TABS: TabConfig[] = [
-  { href: "/", label: "Inicio", icon: Home },
-  { href: "/jardin", label: "Jardín", icon: Sprout },
-  { href: "/escanear", label: "Escanear", icon: Camera, accent: true },
-  { href: "/agente", label: "Agente", icon: Sparkles },
+  { href: "/", tKey: "home", icon: Home },
+  { href: "/jardin", tKey: "garden", icon: Sprout },
+  { href: "/escanear", tKey: "scan", icon: Camera, accent: true },
+  { href: "/agente", tKey: "agent", icon: Sparkles },
 ]
+
+import { useLanguage } from "@/lib/i18n/context"
 
 export function BottomTabs() {
   const pathname = usePathname()
+  const { t } = useLanguage()
 
   return (
     <nav
@@ -64,7 +66,7 @@ export function BottomTabs() {
                   aria-hidden="true"
                   strokeWidth={isActive ? 2.5 : 2}
                 />
-                <span className="leading-none">{tab.label}</span>
+                <span className="leading-none">{t("nav", tab.tKey)}</span>
               </Link>
             </li>
           )

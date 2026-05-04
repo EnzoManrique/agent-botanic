@@ -1,0 +1,45 @@
+{
+  "nav": {
+    "home": "Home",
+    "garden": "Garden",
+    "scan": "Scan",
+    "agent": "Agent",
+    "profile": "Profile"
+  },
+  "home": {
+    "title": "Secretary Botanic",
+    "subtitle": "Your plant care agent",
+    "in_garden": "In your garden",
+    "needs_watering": "Needs watering",
+    "plants_count": "plants",
+    "plant_count": "plant",
+    "to_water_today": "To water today",
+    "click_water": "Tap Water when done.",
+    "view_garden": "View garden",
+    "all_good": "All good!",
+    "no_watering": "No pending watering. Enjoy your garden.",
+    "scan_new": "Scan new plant",
+    "scan_desc": "Identify species with AI and add to your garden."
+  },
+  "profile": {
+    "title": "Profile",
+    "settings": "Settings",
+    "language": "Language",
+    "language_es": "Spanish",
+    "language_en": "English",
+    "agent_personality": "Agent Personality",
+    "integrations": "Integrations",
+    "save": "Save Changes",
+    "saving": "Saving...",
+    "logout": "Log Out"
+  },
+  "agent": {
+    "title": "Agent",
+    "placeholder": "Ask Botanic about your plants...",
+    "thinking": "Botanic is thinking..."
+  },
+  "scan": {
+    "title": "Scan",
+    "instruction": "Upload or take a photo of your plant to identify it."
+  }
+}

@@ -15,7 +15,9 @@ import { ProfileHeaderCard } from "./profile/profile-header-card"
 import { MyProfileCard } from "./profile/my-profile-card"
 import { AgentSettingsCard } from "./profile/agent-settings-card"
 import { WeatherLocationCard } from "./profile/weather-location-card"
+import { LanguageSettingsCard } from "./profile/language-settings-card"
 import { AccountActions } from "./profile/account-actions"
+import { useLanguage } from "@/lib/i18n/context"
 
 function isValidEmail(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())
@@ -31,6 +33,7 @@ export function ProfileView({
   const [settings, setSettings] = useState<UserSettings>(initialSettings)
   const [pristine, setPristine] = useState<UserSettings>(initialSettings)
   const [isPending, startTransition] = useTransition()
+  const { t } = useLanguage()
 
   function handleBack() {
     if (typeof window !== "undefined" && window.history.length > 1) {
@@ -92,9 +95,9 @@ export function ProfileView({
   return (
     <div className="flex flex-col gap-5 mt-[25px]">
       <ScreenHeader
-        eyebrow="Configuración"
-        title="Ajustes de perfil"
-        subtitle="Personalizá tu experiencia de jardinería."
+        eyebrow={t("profile", "settings")}
+        title={t("profile", "title")}
+        subtitle="Personalizá tu experiencia."
         icon={<ArrowLeft className="size-5" aria-hidden="true" />}
         onIconClick={handleBack}
         iconLabel="Volver"
@@ -115,6 +118,8 @@ export function ProfileView({
         agent={settings.agent}
         onChange={(agent) => setSettings((s) => ({ ...s, agent }))}
       />
+
+      <LanguageSettingsCard />
 
       <WeatherLocationCard
         location={settings.location}
@@ -169,7 +174,7 @@ export function ProfileView({
           ) : (
             <Check className="size-4" aria-hidden="true" />
           )}
-          {isPending ? "Guardando..." : "Guardar cambios"}
+          {isPending ? t("profile", "saving") : t("profile", "save")}
         </Button>
       </section>
 

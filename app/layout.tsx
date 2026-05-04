@@ -3,6 +3,7 @@ import { Nunito, Fraunces } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import { Toaster } from "@/components/ui/sonner"
 import { AuthSessionProvider } from "@/components/providers/session-provider"
+import { LanguageProvider } from "@/lib/i18n/context"
 import "./globals.css"
 
 const nunito = Nunito({
@@ -64,8 +65,10 @@ export default function RootLayout({
     <html lang="es" className={`${nunito.variable} ${fraunces.variable} bg-background`}>
       <body className="font-sans antialiased">
         <AuthSessionProvider>
-          {children}
-          <Toaster richColors position="top-center" />
+          <LanguageProvider>
+            {children}
+            <Toaster richColors position="top-center" />
+          </LanguageProvider>
         </AuthSessionProvider>
         {process.env.NODE_ENV === "production" && <Analytics />}
       </body>

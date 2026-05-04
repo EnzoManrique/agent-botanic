@@ -24,6 +24,7 @@ import { ALL_LOCATIONS, LOCATION_META, WATERING_MODE_META } from "@/lib/plant-me
 import type { Plant, PlantLocation, WeatherAlert } from "@/lib/types"
 import type { ProactiveAdvice } from "@/lib/proactive-advisor"
 import { cn } from "@/lib/utils"
+import { useLanguage } from "@/lib/i18n/context"
 
 const SECONDARY_ALERT_ICONS: Record<WeatherAlert["type"], React.ElementType> = {
   zonda: Wind,
@@ -46,13 +47,14 @@ export function HomeView({
 }) {
   const { plants, needsWatering, waterPlant, pendingPlantId } =
     usePlantManager(initialPlants)
+  const { t } = useLanguage()
 
   return (
     <div className="flex flex-col gap-5 mt-6">
       <ScreenHeader
         eyebrow="Zero To Agent · Track 2"
-        title="Secretary Botanic"
-        subtitle="Tu agente de cuidado de plantas"
+        title={t("home", "title")}
+        subtitle={t("home", "subtitle")}
         action={
           <Link
             href="/perfil"
@@ -73,15 +75,15 @@ export function HomeView({
       <section className="grid grid-cols-2 gap-3 px-5">
         <StatCard
           icon={<Leaf className="size-5" aria-hidden="true" />}
-          label="En tu jardín"
+          label={t("home", "in_garden")}
           value={plants.length}
-          unit={plants.length === 1 ? "planta" : "plantas"}
+          unit={plants.length === 1 ? t("home", "plant_count") : t("home", "plants_count")}
         />
         <StatCard
           icon={<Droplets className="size-5" aria-hidden="true" />}
-          label="Necesitan riego"
+          label={t("home", "needs_watering")}
           value={needsWatering.length}
-          unit={needsWatering.length === 1 ? "planta" : "plantas"}
+          unit={needsWatering.length === 1 ? t("home", "plant_count") : t("home", "plants_count")}
           accent
         />
       </section>
@@ -92,18 +94,17 @@ export function HomeView({
         <div className="flex items-end justify-between">
           <div>
             <h2 className="font-serif text-xl leading-tight font-semibold">
-              Para regar hoy
+              {t("home", "to_water_today")}
             </h2>
             <p className="text-xs text-muted-foreground">
-              Tocá <strong className="text-foreground">Regar</strong> al
-              completarlo.
+              {t("home", "click_water")}
             </p>
           </div>
           <Link
             href="/jardin"
             className="text-primary inline-flex items-center gap-1 text-xs font-semibold hover:underline"
           >
-            Ver jardín
+            {t("home", "view_garden")}
             <ArrowRight className="size-3.5" aria-hidden="true" />
           </Link>
         </div>
@@ -117,9 +118,9 @@ export function HomeView({
               <Sparkles className="size-5" />
             </div>
             <div>
-              <p className="font-semibold">¡Todo en orden!</p>
+              <p className="font-semibold">{t("home", "all_good")}</p>
               <p className="text-sm text-muted-foreground">
-                No hay riegos pendientes. Disfrutá tu jardín.
+                {t("home", "no_watering")}
               </p>
             </div>
           </div>
@@ -147,10 +148,10 @@ export function HomeView({
           </div>
           <div className="flex-1">
             <p className="font-serif text-lg leading-tight font-semibold">
-              Escanear nueva planta
+              {t("home", "scan_new")}
             </p>
             <p className="text-primary-foreground/80 text-xs">
-              Identificá especies con IA y sumá al jardín.
+              {t("home", "scan_desc")}
             </p>
           </div>
           <ArrowRight className="size-5" aria-hidden="true" />

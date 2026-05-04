@@ -1,0 +1,45 @@
+{
+  "nav": {
+    "home": "Inicio",
+    "garden": "Jardín",
+    "scan": "Escanear",
+    "agent": "Agente",
+    "profile": "Perfil"
+  },
+  "home": {
+    "title": "Secretary Botanic",
+    "subtitle": "Tu agente de cuidado de plantas",
+    "in_garden": "En tu jardín",
+    "needs_watering": "Necesitan riego",
+    "plants_count": "plantas",
+    "plant_count": "planta",
+    "to_water_today": "Para regar hoy",
+    "click_water": "Tocá Regar al completarlo.",
+    "view_garden": "Ver jardín",
+    "all_good": "¡Todo en orden!",
+    "no_watering": "No hay riegos pendientes. Disfrutá tu jardín.",
+    "scan_new": "Escanear nueva planta",
+    "scan_desc": "Identificá especies con IA y sumá al jardín."
+  },
+  "profile": {
+    "title": "Perfil",
+    "settings": "Configuración",
+    "language": "Idioma",
+    "language_es": "Español",
+    "language_en": "Inglés",
+    "agent_personality": "Personalidad del Agente",
+    "integrations": "Integraciones",
+    "save": "Guardar Cambios",
+    "saving": "Guardando...",
+    "logout": "Cerrar Sesión"
+  },
+  "agent": {
+    "title": "Agente",
+    "placeholder": "Preguntale a Botanic sobre tus plantas...",
+    "thinking": "Botanic está pensando..."
+  },
+  "scan": {
+    "title": "Escanear",
+    "instruction": "Subí o tomá una foto de tu planta para identificarla."
+  }
+}

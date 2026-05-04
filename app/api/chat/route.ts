@@ -30,7 +30,7 @@ export async function POST(req: Request) {
     id: "agent-botanic",
   })
 
-  const { messages }: { messages: UIMessage[] } = await req.json()
+  const { messages, language }: { messages: UIMessage[], language?: string } = await req.json()
 
   // Cargamos jardín + settings en paralelo: el system prompt necesita ambos
   // para poder dar contexto local (ciudad, alertas activadas, plantas).
@@ -56,7 +56,10 @@ export async function POST(req: Request) {
   const city = settings.location.city || "Mendoza, Argentina"
   const alertPrefs = settings.location.alerts
 
-  const system = `Sos "Secretary Botanic", un asistente experto en cuidado de plantas. Hablás en español rioplatense (vos, querés, regá), con tono cálido y didáctico.
+  const targetLanguage = language === "en" ? "English" : "Spanish (Rioplatense: vos, querés, regá)"
+
+  const system = `Sos "Secretary Botanic", un asistente experto en cuidado de plantas.
+IMPORTANT: You MUST respond to the user EXCLUSIVELY in ${targetLanguage}.
 
 ==========================================================
 LIMITES DE LA CONVERSACION (MUY IMPORTANTE)

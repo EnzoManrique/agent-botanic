@@ -1,4 +1,5 @@
-
+import { config } from "dotenv"
+config({ path: ".env.local" })
 import { neon } from '@neondatabase/serverless';
 
 const connectionString = process.env.POSTGRES_URL || process.env.DATABASE_URL || process.env.POSTGRES_URL_NON_POOLING;
@@ -17,7 +18,8 @@ async function migrate() {
     await sql`
       ALTER TABLE user_settings 
       ADD COLUMN IF NOT EXISTS latitude DOUBLE PRECISION,
-      ADD COLUMN IF NOT EXISTS longitude DOUBLE PRECISION;
+      ADD COLUMN IF NOT EXISTS longitude DOUBLE PRECISION,
+      ADD COLUMN IF NOT EXISTS language VARCHAR(10) DEFAULT 'es';
     `;
     console.log("Migration successful!");
   } catch (err) {

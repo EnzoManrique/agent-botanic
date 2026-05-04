@@ -95,18 +95,20 @@ type PendingImage = {
   mediaType: string
 }
 
+import { useLanguage } from "@/lib/i18n/context"
+
 export function ChatPanel({ initialPrompt }: { initialPrompt?: string }) {
+  const { language, t } = useLanguage()
   const [input, setInput] = useState("")
   const [pendingImage, setPendingImage] = useState<PendingImage | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const initialPromptSent = useRef(false)
-  // Trackeamos si ya intentamos un auto-retry para el último error. Sin
-  // esto entraríamos en loop si el modelo está caído un buen rato.
   const retryAttemptedRef = useRef(false)
 
   const { messages, sendMessage, regenerate, status } = useChat({
     transport: new DefaultChatTransport({ api: "/api/chat" }),
+    body: { language },
     // Estrategia de errores en 2 niveles:
     //  1. Si es saturación transitoria del modelo (high demand, 503, 429,
     //     timeout) hacemos UN auto-retry silencioso después de 2s. La
