@@ -53,14 +53,13 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     return text
   }
 
-  // To prevent hydration errors, render children after mounted
-  if (!mounted) {
-    return <div style={{ visibility: "hidden" }}>{children}</div>
-  }
-
+  // To prevent hydration errors, we wait for mount to show the UI
+  // but we MUST provide the context to children during SSR/SSG.
   return (
     <LanguageContext.Provider value={{ language, setLanguage, t }}>
-      {children}
+      <div style={{ visibility: mounted ? "visible" : "hidden" }}>
+        {children}
+      </div>
     </LanguageContext.Provider>
   )
 }
