@@ -30,7 +30,11 @@ export async function POST(req: Request) {
     id: "agent-botanic",
   })
 
-  const { messages, language }: { messages: UIMessage[], language?: string } = await req.json()
+  const { messages, language: bodyLanguage }: { messages: UIMessage[], language?: string } = await req.json()
+  
+  // Robust language detection: prefer cookie (app setting), then body, then default to "es"
+  const cookieStore = await cookies()
+  const language = cookieStore.get("botanic-lang")?.value || bodyLanguage || "es"
 
   // Cargamos jardín + settings en paralelo: el system prompt necesita ambos
   // para poder dar contexto local (ciudad, alertas activadas, plantas).
@@ -61,8 +65,8 @@ export async function POST(req: Request) {
   const system = `You are "Secretary Botanic", an expert botanical assistant and plant care specialist.
   
   CRITICAL: You MUST respond to the user EXCLUSIVELY in ${targetLanguage}. 
-  Even if the user speaks another language, you must use ${targetLanguage} for your response.
-  If the user speaks ${language === "en" ? "English" : "Spanish"}, respond naturally in that language.
+  Even if the user speaks another language, or if previous messages in this chat are in a different language, you MUST use ${targetLanguage} for your response.
+  If the user speaks ${language === "en" ? "English" : "Spanish"}, respond naturally in ${targetLanguage}.`
 
   ==========================================================
   CONVERSATION SCOPE (VERY IMPORTANT)
@@ -122,7 +126,9 @@ export async function POST(req: Request) {
   ==========================================================
   - Short responses (2-5 lines unless detail is requested).
   - Be specific with dosages/mixes.
-  - Use ${targetLanguage} exclusively.`
+  - Use ${targetLanguage} exclusively.
+
+  IMPORTANT: YOU MUST RESPOND IN ${targetLanguage} REGARDLESS OF THE USER'S LANGUAGE OR PREVIOUS MESSAGES.`
 
   // Helper: convierte una excepción de tool en un objeto que el modelo puede
   // leer y comunicar al usuario. Antes, si una tool tiraba (ej. Open-Meteo
@@ -139,15 +145,16 @@ export async function POST(req: Request) {
   }
 
   const result = streamText({
-    // Utilizamos gpt-4o-mini a través del AI Gateway. Es rapidísimo, consume
-    // del mismo saldo de Vercel y es mucho más estable con el llamado a Herramientas
-    // (tool calling) a través del Gateway que los modelos de Google.
     model: gateway("openai/gpt-4o-mini"),
     system,
-    messages: await convertToModelMessages(messages),
+    messages: [
+      ...(await convertToModelMessages(messages)),
+      { 
+        role: "system", 
+        content: `IMPORTANT: Respond EXCLUSIVELY in ${targetLanguage}. Do not use any other language.` 
+      }
+    ],
     stopWhen: stepCountIs(5),
-    // Si el modelo en sí falla (no una tool), logueamos el detalle completo
-    // para poder diagnosticar qué pasó. El cliente ya lo captura vía onError.
     onError: ({ error }) => {
       console.error("[v0] streamText error:", error)
     },
