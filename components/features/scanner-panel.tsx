@@ -50,6 +50,7 @@ import type {
 } from "@/lib/types"
 import { usePlantManager } from "@/lib/hooks/use-plant-manager"
 import { cn } from "@/lib/utils"
+import { useLanguage } from "@/lib/i18n/context"
 
 type Step = "upload" | "identifying" | "confirm"
 
@@ -75,6 +76,7 @@ export function ScannerPanel({
   const [isSaving, startSaving] = useTransition()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const galleryInputRef = useRef<HTMLInputElement>(null)
+  const { language } = useLanguage()
 
   function reset() {
     setStep("upload")
@@ -166,9 +168,9 @@ export function ScannerPanel({
               <Camera className="size-7" aria-hidden="true" />
             </div>
             <div>
-              <p className="font-serif text-lg font-semibold">Tomar una foto</p>
+              <p className="font-serif text-lg font-semibold">{language === "en" ? "Take a photo" : "Tomar una foto"}</p>
               <p className="mt-1 text-sm text-muted-foreground">
-                Usa la cámara trasera. Buena luz natural ayuda mucho.
+                {language === "en" ? "Use the rear camera. Good natural light helps a lot." : "Usa la cámara trasera. Buena luz natural ayuda mucho."}
               </p>
             </div>
           </button>
@@ -179,14 +181,13 @@ export function ScannerPanel({
             className="hover:bg-secondary/40 flex items-center justify-center gap-2 rounded-2xl border-2 border-border bg-card px-4 py-3 text-sm font-semibold transition-colors"
           >
             <Upload className="size-4" aria-hidden="true" />
-            Subir desde galería
+            {language === "en" ? "Upload from gallery" : "Subir desde galería"}
           </button>
 
           <div className="rounded-2xl border-2 border-border bg-secondary/40 p-4 text-sm leading-relaxed">
-            <p className="font-semibold text-foreground">Tip del agente</p>
+            <p className="font-semibold text-foreground">{language === "en" ? "Agent Tip" : "Tip del agente"}</p>
             <p className="mt-1 text-muted-foreground">
-              Centrá la hoja más característica y evitá el contraluz para que la
-              identificación sea más precisa.
+              {language === "en" ? "Center the most characteristic leaf and avoid backlighting for a more accurate identification." : "Centrá la hoja más característica y evitá el contraluz para que la identificación sea más precisa."}
             </p>
           </div>
         </div>

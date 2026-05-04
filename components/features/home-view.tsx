@@ -238,7 +238,7 @@ function ProactiveAdviceCard({ advice }: { advice: ProactiveAdvice }) {
           </span>
           <div className="flex-1">
             <p className="text-xs font-semibold tracking-wide uppercase text-muted-foreground">
-              El agente sugiere
+              {t("home", "agent_suggests") || "El agente sugiere"}
             </p>
             <p className="font-serif text-base leading-tight font-semibold text-balance">
               {advice.headline}
@@ -251,7 +251,7 @@ function ProactiveAdviceCard({ advice }: { advice: ProactiveAdvice }) {
           className="bg-card hover:bg-secondary/60 inline-flex items-center justify-center gap-2 rounded-2xl border-2 border-border px-4 py-2.5 text-sm font-semibold transition-colors"
         >
           <Sparkles className="size-4" aria-hidden="true" />
-          Hablarlo con el agente
+          {t("home", "talk_with_agent") || "Hablarlo con el agente"}
         </Link>
       </article>
     </section>

@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/drawer"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { useLanguage } from "@/lib/i18n/context"
 
 interface Props {
   open: boolean
@@ -21,6 +22,7 @@ interface Props {
 }
 
 export function DeveloperTutorial({ open, onOpenChange, origin }: Props) {
+  const { language } = useLanguage()
   const mcpUrl = `${origin}/api/mcp`
   const voiceUrl = `${origin}/api/voice`
 
@@ -38,10 +40,10 @@ export function DeveloperTutorial({ open, onOpenChange, origin }: Props) {
               </span>
               <div className="flex flex-col gap-1">
                 <DrawerTitle className="font-serif text-2xl font-bold leading-tight">
-                  Guía para Developers
+                  {language === "en" ? "Developer Guide" : "Guía para Developers"}
                 </DrawerTitle>
                 <DrawerDescription className="text-sm leading-relaxed text-pretty">
-                  Llevá la lógica de Botanic a tus propios scripts.
+                  {language === "en" ? "Bring Botanic's logic to your own scripts." : "Llevá la lógica de Botanic a tus propios scripts."}
                 </DrawerDescription>
               </div>
             </div>
@@ -63,14 +65,15 @@ export function DeveloperTutorial({ open, onOpenChange, origin }: Props) {
           <section className="rounded-2xl border-2 border-border bg-card p-4">
             <h3 className="mb-2 flex items-center gap-2 font-serif text-base font-bold text-primary">
               <Code className="size-4" />
-              REST API (Texto Plano)
+              {language === "en" ? "REST API (Plain Text)" : "REST API (Texto Plano)"}
             </h3>
             <p className="text-xs leading-relaxed text-muted-foreground text-pretty mb-3">
-              Endpoint ultra-liviano pensado para asistentes de voz o scripts simples. Devuelve texto limpio en español. Usá los parámetros <code>?q=regar</code>, <code>?q=plantas</code> o <code>?q=clima</code>.
+              {language === "en" ? "Ultra-lightweight endpoint designed for voice assistants or simple scripts. Returns clean text in Spanish. Use parameters ?q=regar, ?q=plantas or ?q=clima." : "Endpoint ultra-liviano pensado para asistentes de voz o scripts simples. Devuelve texto limpio en español. Usá los parámetros ?q=regar, ?q=plantas o ?q=clima."}
             </p>
             <CopyBlock
-              value={`curl -X GET "${voiceUrl}?q=regar" \\\n  -H "Authorization: Bearer botanic_TU_TOKEN_ACA"`}
-              label="Ejemplo con cURL"
+              value={`curl -X GET "${voiceUrl}?q=regar" \\\n  -H "Authorization: Bearer TU_TOKEN_ACA"`}
+              label={language === "en" ? "cURL Example" : "Ejemplo con cURL"}
+              language={language}
               multiline
             />
           </section>
@@ -81,11 +84,12 @@ export function DeveloperTutorial({ open, onOpenChange, origin }: Props) {
               MCP Server (JSON-RPC)
             </h3>
             <p className="text-xs leading-relaxed text-muted-foreground text-pretty mb-3">
-              Endpoint compatible con el protocolo MCP. Ideal para integrar en flujos de LLM o agentes conversacionales. Exponemos herramientas como <code>list_plants</code> y <code>get_weather_alerts</code>.
+              {language === "en" ? "MCP protocol compatible endpoint. Ideal to integrate in LLM flows or conversational agents. We expose tools like list_plants and get_weather_alerts." : "Endpoint compatible con el protocolo MCP. Ideal para integrar en flujos de LLM o agentes conversacionales. Exponemos herramientas como list_plants y get_weather_alerts."}
             </p>
             <CopyBlock
-              value={`curl -X POST ${mcpUrl} \\\n  -H "Authorization: Bearer botanic_TU_TOKEN_ACA" \\\n  -H "Content-Type: application/json" \\\n  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'`}
-              label="Listar Herramientas (cURL)"
+              value={`curl -X POST ${mcpUrl} \\\n  -H "Authorization: Bearer TU_TOKEN_ACA" \\\n  -H "Content-Type: application/json" \\\n  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'`}
+              label={language === "en" ? "List Tools (cURL)" : "Listar Herramientas (cURL)"}
+              language={language}
               multiline
             />
           </section>
@@ -95,7 +99,7 @@ export function DeveloperTutorial({ open, onOpenChange, origin }: Props) {
   )
 }
 
-function CopyBlock({ value, label, multiline = false }: { value: string; label: string; multiline?: boolean }) {
+function CopyBlock({ value, label, multiline = false, language = "es" }: { value: string; label: string; multiline?: boolean, language?: string }) {
   const [copied, setCopied] = useState(false)
 
   async function handleCopy() {
@@ -104,7 +108,7 @@ function CopyBlock({ value, label, multiline = false }: { value: string; label: 
       setCopied(true)
       setTimeout(() => setCopied(false), 1500)
     } catch {
-      toast.error("No pude copiar al portapapeles.")
+      toast.error(language === "en" ? "Could not copy to clipboard." : "No pude copiar al portapapeles.")
     }
   }
 

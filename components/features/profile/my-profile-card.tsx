@@ -12,6 +12,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { SettingsSection } from "./settings-section"
 import type { UserSettings } from "@/lib/types"
+import { useLanguage } from "@/lib/i18n/context"
 
 interface MyProfileCardProps {
   profile: UserSettings["profile"]
@@ -28,6 +29,7 @@ export function MyProfileCard({
   const [pwd, setPwd] = useState({ current: "", next: "", confirm: "" })
   const [showPwd, setShowPwd] = useState(false)
   const [pwdMessage, setPwdMessage] = useState<string | null>(null)
+  const { language } = useLanguage()
 
   function applyPasswordChange() {
     if (pwd.next.length < 6) {
@@ -48,12 +50,12 @@ export function MyProfileCard({
   return (
     <SettingsSection
       icon={<User className="size-5" />}
-      title="Mi perfil"
-      description="Actualizá tu nombre, mail y contraseña."
+      title={language === "en" ? "My profile" : "Mi perfil"}
+      description={language === "en" ? "Update your name, email and password." : "Actualizá tu nombre, mail y contraseña."}
     >
       <FieldGroup>
         <Field>
-          <FieldLabel htmlFor="profile-name">Nombre</FieldLabel>
+          <FieldLabel htmlFor="profile-name">{language === "en" ? "Name" : "Nombre"}</FieldLabel>
           <InputGroup>
             <InputGroupAddon>
               <User className="size-4" aria-hidden="true" />
@@ -62,7 +64,7 @@ export function MyProfileCard({
               id="profile-name"
               type="text"
               autoComplete="name"
-              placeholder="Tu nombre"
+              placeholder={language === "en" ? "Your name" : "Tu nombre"}
               value={profile.name}
               onChange={(e) =>
                 onChange({ ...profile, name: e.target.value })
@@ -72,7 +74,7 @@ export function MyProfileCard({
         </Field>
 
         <Field data-invalid={emailError ? "true" : undefined}>
-          <FieldLabel htmlFor="profile-email">Correo</FieldLabel>
+          <FieldLabel htmlFor="profile-email">{language === "en" ? "Email" : "Correo"}</FieldLabel>
           <InputGroup>
             <InputGroupAddon>
               <Mail className="size-4" aria-hidden="true" />
@@ -106,7 +108,7 @@ export function MyProfileCard({
             className="w-full justify-start gap-2 rounded-2xl border-2 font-semibold"
           >
             <KeyRound className="size-4" aria-hidden="true" />
-            Cambiar contraseña
+            {language === "en" ? "Change password" : "Cambiar contraseña"}
           </Button>
         ) : (
           <div className="flex flex-col gap-3">

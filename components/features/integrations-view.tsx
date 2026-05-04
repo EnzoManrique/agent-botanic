@@ -45,6 +45,7 @@ import type { McpTokenRow } from "@/lib/db/mcp-tokens"
 import { AppleShortcutsTutorial } from "./integrations/apple-shortcuts-tutorial"
 import { DeveloperTutorial } from "./integrations/developer-tutorial"
 import { ClaudeDesktopTutorial } from "./integrations/claude-desktop-tutorial"
+import { useLanguage } from "@/lib/i18n/context"
 
 /** Id del nodo de la sección de tokens — lo usamos para scrollear desde el
  *  tutorial cuando el usuario tiene que volver a generar uno. */
@@ -68,6 +69,7 @@ export function IntegrationsView({ initialTokens }: Props) {
   const router = useRouter()
   const [tokens, setTokens] = useState(initialTokens)
   const [origin, setOrigin] = useState("https://tu-dominio.vercel.app")
+  const { language } = useLanguage()
 
   /** Tutorial activo en el drawer, o null si no hay ninguno abierto. */
   const [activeTutorial, setActiveTutorial] = useState<TutorialKey | null>(
@@ -111,22 +113,23 @@ export function IntegrationsView({ initialTokens }: Props) {
   return (
     <div className="mt-[25px] flex flex-col gap-5 pb-4">
       <ScreenHeader
-        eyebrow="Configuración"
-        title="Integraciones"
-        subtitle="Conectá Botanic con tus dispositivos."
+        eyebrow={language === "en" ? "Configuration" : "Configuración"}
+        title={language === "en" ? "Integrations" : "Integraciones"}
+        subtitle={language === "en" ? "Connect Botanic with your devices." : "Conectá Botanic con tus dispositivos."}
         icon={<ArrowLeft className="size-5" aria-hidden="true" />}
         onIconClick={handleBack}
-        iconLabel="Volver"
+        iconLabel={language === "en" ? "Back" : "Volver"}
       />
 
-      <HeroExplainer />
-      <EndpointCard origin={origin} />
+      <HeroExplainer language={language} />
+      <EndpointCard origin={origin} language={language} />
       <TokensSection
         tokens={tokens}
         onChange={refreshTokens}
         origin={origin}
+        language={language}
       />
-      <PlatformsSection onOpenTutorial={setActiveTutorial} />
+      <PlatformsSection onOpenTutorial={setActiveTutorial} language={language} />
 
       {/* Drawer del tutorial — controlado desde activeTutorial. Sólo
           tenemos uno abierto a la vez. */}
@@ -155,7 +158,7 @@ type TutorialKey = "apple-shortcuts" | "developer" | "claude-desktop"
 
 // ---------- Hero ----------
 
-function HeroExplainer() {
+function HeroExplainer({ language }: { language: string }) {
   return (
     <section className="mx-5 rounded-3xl border-2 border-border bg-card p-5 shadow-soft">
       <div className="flex items-start gap-3">
@@ -167,14 +170,12 @@ function HeroExplainer() {
         </span>
         <div className="flex-1">
           <h2 className="font-serif text-lg leading-tight font-bold">
-            Tu agente botánico, en cualquier lugar
+            {language === "en" ? "Your botanical agent, anywhere" : "Tu agente botánico, en cualquier lugar"}
           </h2>
           <p className="mt-1 text-sm leading-relaxed text-muted-foreground text-pretty">
-            Botanic expone tus datos y herramientas vía{" "}
-            <span className="font-semibold text-foreground">MCP</span>{" "}
-            (Model Context Protocol), el estándar abierto que cualquier
-            agente IA puede consumir. Generá un token y conectalo donde
-            quieras.
+            {language === "en" 
+              ? "Botanic exposes your data and tools via MCP (Model Context Protocol), the open standard any AI agent can consume. Generate a token and connect it wherever you want."
+              : "Botanic expone tus datos y herramientas vía MCP (Model Context Protocol), el estándar abierto que cualquier agente IA puede consumir. Generá un token y conectalo donde quieras."}
           </p>
         </div>
       </div>
@@ -184,10 +185,10 @@ function HeroExplainer() {
 
 // ---------- Endpoint card ----------
 
-function EndpointCard({ origin }: { origin: string }) {
+function EndpointCard({ origin, language }: { origin: string, language: string }) {
   const endpoint = `${origin}/api/mcp`
   const exampleCurl = `curl -X POST ${endpoint} \\
-  -H "Authorization: Bearer botanic_xxx" \\
+  -H "Authorization: Bearer TU_TOKEN_ACA" \\
   -H "Content-Type: application/json" \\
   -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'`
 
@@ -195,21 +196,21 @@ function EndpointCard({ origin }: { origin: string }) {
     <section className="mx-5 flex flex-col gap-3 rounded-3xl border-2 border-border bg-card p-5 shadow-soft">
       <div className="flex items-center gap-2">
         <Terminal className="text-primary size-4" aria-hidden="true" />
-        <h2 className="font-serif text-base font-bold">Tu endpoint MCP</h2>
+        <h2 className="font-serif text-base font-bold">{language === "en" ? "Your MCP endpoint" : "Tu endpoint MCP"}</h2>
       </div>
 
       <div>
         <p className="mb-1.5 text-xs font-semibold text-muted-foreground">
-          URL del server
+          {language === "en" ? "Server URL" : "URL del server"}
         </p>
-        <CopyableBlock value={endpoint} mono />
+        <CopyableBlock value={endpoint} mono language={language} />
       </div>
 
       <div>
         <p className="mb-1.5 text-xs font-semibold text-muted-foreground">
-          Ejemplo (curl)
+          {language === "en" ? "Example (curl)" : "Ejemplo (curl)"}
         </p>
-        <CopyableBlock value={exampleCurl} mono multiline />
+        <CopyableBlock value={exampleCurl} mono multiline language={language} />
       </div>
 
       <div className="mt-1 flex flex-wrap gap-1.5">
@@ -238,10 +239,12 @@ function TokensSection({
   tokens,
   onChange,
   origin,
+  language
 }: {
   tokens: McpTokenRow[]
   onChange: () => Promise<void>
   origin: string
+  language: string
 }) {
   const [creating, setCreating] = useState(false)
   const [name, setName] = useState("")
@@ -298,7 +301,7 @@ function TokensSection({
         <div className="flex items-center gap-2">
           <Key className="text-primary size-4" aria-hidden="true" />
           <h2 className="font-serif text-base font-bold">
-            Tokens de acceso
+            {language === "en" ? "Access tokens" : "Tokens de acceso"}
           </h2>
         </div>
         {!creating && !revealed ? (
@@ -309,22 +312,21 @@ function TokensSection({
             className="rounded-xl"
           >
             <Plus className="size-3.5" aria-hidden="true" />
-            Nuevo
+            {language === "en" ? "New" : "Nuevo"}
           </Button>
         ) : null}
       </header>
 
       <p className="text-xs leading-relaxed text-muted-foreground">
-        Cada token autentica al cliente con tu cuenta. El secret completo
-        sólo se muestra una vez.
+        {language === "en" ? "Each token authenticates the client with your account. The full secret is only shown once." : "Cada token autentica al cliente con tu cuenta. El secret completo sólo se muestra una vez."}
       </p>
 
       {revealed ? (
         <div className="flex flex-col gap-2 rounded-2xl border-2 border-primary/40 bg-primary/5 p-3">
           <p className="text-xs font-semibold text-primary">
-            Guardalo ahora — no lo vamos a poder volver a mostrar.
+            {language === "en" ? "Save it now — we won't be able to show it again." : "Guardalo ahora — no lo vamos a poder volver a mostrar."}
           </p>
-          <CopyableBlock value={revealed.plaintext} mono />
+          <CopyableBlock value={revealed.plaintext} mono language={language} />
           <Button
             type="button"
             variant="ghost"
@@ -332,7 +334,7 @@ function TokensSection({
             onClick={() => setRevealed(null)}
             className="self-end rounded-xl"
           >
-            Ya lo guardé
+            {language === "en" ? "I saved it" : "Ya lo guardé"}
           </Button>
         </div>
       ) : null}
@@ -343,13 +345,13 @@ function TokensSection({
             htmlFor="token-name"
             className="text-xs font-semibold text-foreground"
           >
-            Nombre del token
+            {language === "en" ? "Token name" : "Nombre del token"}
           </label>
           <Input
             id="token-name"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Ej. Apple Shortcuts en mi iPhone"
+            placeholder={language === "en" ? "E.g. Apple Shortcuts on my iPhone" : "Ej. Apple Shortcuts en mi iPhone"}
             maxLength={60}
             className="rounded-xl"
             autoFocus
@@ -365,7 +367,7 @@ function TokensSection({
               }}
               className="rounded-xl"
             >
-              Cancelar
+              {language === "en" ? "Cancel" : "Cancelar"}
             </Button>
             <Button
               type="button"
@@ -379,7 +381,7 @@ function TokensSection({
               ) : (
                 <Check className="size-3.5" aria-hidden="true" />
               )}
-              Generar
+              {language === "en" ? "Generate" : "Generar"}
             </Button>
           </div>
         </div>
@@ -388,9 +390,9 @@ function TokensSection({
       <ul className="flex flex-col gap-2">
         {tokens.length === 0 ? (
           <li className="rounded-2xl border-2 border-dashed border-border px-4 py-6 text-center text-sm text-muted-foreground">
-            Sin tokens todavía.
+            {language === "en" ? "No tokens yet." : "Sin tokens todavía."}
             <br />
-            <span className="text-xs">Generá uno para empezar.</span>
+            <span className="text-xs">{language === "en" ? "Generate one to start." : "Generá uno para empezar."}</span>
           </li>
         ) : (
           tokens.map((t) => (
@@ -413,8 +415,8 @@ function TokensSection({
                 </p>
                 <p className="text-[11px] text-muted-foreground">
                   {t.lastUsedAt
-                    ? `Último uso: ${formatDate(t.lastUsedAt)}`
-                    : "Sin usar todavía"}
+                    ? (language === "en" ? `Last used: ${formatDate(t.lastUsedAt, language)}` : `Último uso: ${formatDate(t.lastUsedAt, language)}`)
+                    : (language === "en" ? "Unused" : "Sin usar todavía")}
                 </p>
               </div>
               <Button
@@ -438,19 +440,18 @@ function TokensSection({
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>¿Revocar este token?</AlertDialogTitle>
+            <AlertDialogTitle>{language === "en" ? "Revoke this token?" : "¿Revocar este token?"}</AlertDialogTitle>
             <AlertDialogDescription>
-              El cliente que lo esté usando va a perder acceso al instante.
-              Esta acción no se puede deshacer.
+              {language === "en" ? "The client using it will lose access immediately. This action cannot be undone." : "El cliente que lo esté usando va a perder acceso al instante. Esta acción no se puede deshacer."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel>{language === "en" ? "Cancel" : "Cancelar"}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleConfirmDelete}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Revocar
+              {language === "en" ? "Revoke" : "Revocar"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -476,67 +477,63 @@ function TokensSection({
 
 // ---------- Platforms section ----------
 
-const PLATFORMS: PlatformCardData[] = [
-  {
-    name: "Para developers",
-    description:
-      "Cualquier app o script que pueda hablar HTTP+JSON puede conectarse hoy. Mirá el ejemplo curl arriba.",
-    icon: Terminal,
-    status: "live",
-    tutorial: "developer",
-  },
-  {
-    name: "Claude Desktop",
-    description:
-      "Pegá el endpoint MCP en la config de Claude y vas a poder preguntarle a Claude por tu jardín.",
-    icon: Bot,
-    status: "live",
-    tutorial: "claude-desktop",
-  },
-  {
-    name: "Apple Shortcuts",
-    description:
-      "Hacé que Siri te diga qué plantas regar hoy. Tocá para ver el tutorial paso a paso.",
-    icon: Smartphone,
-    status: "live",
-    tutorial: "apple-shortcuts",
-  },
-  {
-    name: "WhatsApp Bot",
-    description:
-      "Pedile a Botanic por mensaje qué regar mañana o que te recomiende un fertilizante. En desarrollo.",
-    icon: MessageCircle,
-    status: "soon",
-  },
-  {
-    name: "Google Home",
-    description:
-      "“Hey Google, ¿qué tengo que regar hoy?”. Próximamente, integración nativa.",
-    icon: Speaker,
-    status: "soon",
-  },
-  {
-    name: "Alexa",
-    description:
-      "Skill de Alexa para consultar tu jardín y alertas climáticas con voz. Próximamente.",
-    icon: Mic,
-    status: "soon",
-  },
-]
-
 function PlatformsSection({
   onOpenTutorial,
+  language,
 }: {
   onOpenTutorial: (key: TutorialKey) => void
+  language: string
 }) {
+  const PLATFORMS: PlatformCardData[] = [
+    {
+      name: language === "en" ? "For developers" : "Para developers",
+      description: language === "en" ? "Any app or script that can speak HTTP+JSON can connect today. Check the curl example above." : "Cualquier app o script que pueda hablar HTTP+JSON puede conectarse hoy. Mirá el ejemplo curl arriba.",
+      icon: Terminal,
+      status: "live",
+      tutorial: "developer",
+    },
+    {
+      name: "Claude Desktop",
+      description: language === "en" ? "Paste the MCP endpoint in Claude config and you will be able to ask Claude about your garden." : "Pegá el endpoint MCP en la config de Claude y vas a poder preguntarle a Claude por tu jardín.",
+      icon: Bot,
+      status: "live",
+      tutorial: "claude-desktop",
+    },
+    {
+      name: "Apple Shortcuts",
+      description: language === "en" ? "Make Siri tell you which plants to water today. Tap to see the step-by-step tutorial." : "Hacé que Siri te diga qué plantas regar hoy. Tocá para ver el tutorial paso a paso.",
+      icon: Smartphone,
+      status: "live",
+      tutorial: "apple-shortcuts",
+    },
+    {
+      name: "WhatsApp Bot",
+      description: language === "en" ? "Message Botanic to ask what to water tomorrow or recommend a fertilizer. In development." : "Pedile a Botanic por mensaje qué regar mañana o que te recomiende un fertilizante. En desarrollo.",
+      icon: MessageCircle,
+      status: "soon",
+    },
+    {
+      name: "Google Home",
+      description: language === "en" ? "“Hey Google, what should I water today?”. Coming soon, native integration." : "“Hey Google, ¿qué tengo que regar hoy?”. Próximamente, integración nativa.",
+      icon: Speaker,
+      status: "soon",
+    },
+    {
+      name: "Alexa",
+      description: language === "en" ? "Alexa Skill to check your garden and weather alerts via voice. Coming soon." : "Skill de Alexa para consultar tu jardín y alertas climáticas con voz. Próximamente.",
+      icon: Mic,
+      status: "soon",
+    },
+  ]
+
   return (
     <section className="mx-5 flex flex-col gap-3">
       <header>
         <h2 className="font-serif text-lg font-bold leading-tight">
-          Plataformas compatibles
+          {language === "en" ? "Compatible Platforms" : "Plataformas compatibles"}
         </h2>
         <p className="text-xs text-muted-foreground">
-          Conectá Botanic con la herramienta donde ya hablás todos los días.
+          {language === "en" ? "Connect Botanic with the tool you already use every day." : "Conectá Botanic con la herramienta donde ya hablás todos los días."}
         </p>
       </header>
       <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -568,6 +565,7 @@ function PlatformCard({
   platform: PlatformCardData
   onOpenTutorial: (key: TutorialKey) => void
 }) {
+  const { language } = useLanguage()
   const { icon: Icon, status, name, description, tutorial } = platform
   const isLive = status === "live"
   const hasTutorial = Boolean(tutorial)
@@ -596,7 +594,7 @@ function PlatformCard({
               : "bg-secondary text-muted-foreground border border-border",
           )}
         >
-          {isLive ? "Disponible" : "Pronto"}
+          {isLive ? (language === "en" ? "Live" : "Disponible") : (language === "en" ? "Soon" : "Pronto")}
         </span>
       </div>
       <h3 className="font-serif text-sm font-bold leading-tight">{name}</h3>
@@ -605,7 +603,7 @@ function PlatformCard({
       </p>
       {hasTutorial ? (
         <span className="text-primary mt-1 inline-flex items-center gap-1 text-xs font-semibold">
-          Ver tutorial
+          {language === "en" ? "View tutorial" : "Ver tutorial"}
           <ChevronRight className="size-3.5" aria-hidden="true" />
         </span>
       ) : null}
@@ -649,10 +647,12 @@ function CopyableBlock({
   value,
   mono = false,
   multiline = false,
+  language = "es",
 }: {
   value: string
   mono?: boolean
   multiline?: boolean
+  language?: string
 }) {
   const [copied, setCopied] = useState(false)
 
@@ -699,9 +699,9 @@ function CopyableBlock({
   )
 }
 
-function formatDate(iso: string): string {
+function formatDate(iso: string, language: string = "es"): string {
   try {
-    return new Date(iso).toLocaleString("es-AR", {
+    return new Date(iso).toLocaleString(language === "en" ? "en-US" : "es-AR", {
       day: "2-digit",
       month: "short",
       hour: "2-digit",

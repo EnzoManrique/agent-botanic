@@ -5,7 +5,7 @@ import { LogOut } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/lib/hooks/use-auth"
 
-const APP_VERSION = "Vercel Zero-To-Agent v1.0"
+const APP_VERSION = "Enzo Manrique | Vercel Zero-To-Agent v1.0"
 
 export function AccountActions() {
   const { logout } = useAuth()
