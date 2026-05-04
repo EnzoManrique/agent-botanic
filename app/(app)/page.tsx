@@ -38,7 +38,19 @@ export default async function Home() {
       },
     )
     alerts = summary.alerts
-    primaryAlert = alerts[0]
+    primaryAlert = alerts[0] || {
+      type: "calm",
+      severity: "low",
+      title: language === "en" ? "Stable weather" : "Clima estable",
+      description: language === "en" 
+        ? "No specific weather alerts at the moment." 
+        : "No hay alertas climáticas específicas en este momento.",
+      recommendation: language === "en"
+        ? "A good day to check your plants' soil and rotate your pots."
+        : "Un buen día para revisar el sustrato y rotar tus macetas.",
+      location: summary.forecast.location.label,
+      validUntil: language === "en" ? "Today 23:59" : "Hoy 23:59",
+    }
   } catch (error) {
     console.error("[v0] Home: error obteniendo clima:", error)
     primaryAlert = {
