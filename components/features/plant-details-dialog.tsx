@@ -223,6 +223,7 @@ export function PlantDetailsDialog({
                 setLightNeeds={setLightNeeds}
                 notes={notes}
                 setNotes={setNotes}
+                language={language}
               />
             )}
           </div>
@@ -291,15 +292,18 @@ export function PlantDetailsDialog({
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="font-serif">
-              ¿Borrar {plant.alias}?
+              {language === "en" ? `Delete ${plant.alias}?` : `¿Borrar ${plant.alias}?`}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Esta acción no se puede deshacer. La planta y su historial de
-              cuidados se eliminarán permanentemente.
+              {language === "en" 
+                ? "This action cannot be undone. The plant and its care history will be permanently removed."
+                : "Esta acción no se puede deshacer. La planta y su historial de cuidados se eliminarán permanentemente."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel disabled={isDeleting}>
+              {language === "en" ? "Cancel" : "Cancelar"}
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={(e) => {
                 e.preventDefault()
@@ -311,12 +315,12 @@ export function PlantDetailsDialog({
               {isDeleting ? (
                 <>
                   <Spinner className="size-4" />
-                  Borrando...
+                  {language === "en" ? "Deleting..." : "Borrando..."}
                 </>
               ) : (
                 <>
                   <Trash2 className="size-4" aria-hidden="true" />
-                  Borrar
+                  {language === "en" ? "Delete" : "Borrar"}
                 </>
               )}
             </AlertDialogAction>
@@ -337,6 +341,7 @@ function ViewContent({
   CategoryIcon,
   categoryLabel,
   lightLabel,
+  language,
 }: {
   plant: Plant
   careMeta: (typeof WATERING_MODE_META)[WateringMode]
@@ -437,34 +442,36 @@ function EditForm(props: {
   setLightNeeds: (v: Plant["lightNeeds"]) => void
   notes: string
   setNotes: (v: string) => void
+  language: string
 }) {
+  const isEn = props.language === "en"
   return (
     <div className="space-y-3">
-      <Field label="Apodo">
+      <Field label={isEn ? "Nickname" : "Apodo"}>
         <Input
           value={props.alias}
           onChange={(e) => props.setAlias(e.target.value)}
-          placeholder="Ej: Felipe"
+          placeholder={isEn ? "e.g. Felipe" : "Ej: Felipe"}
         />
       </Field>
 
-      <Field label="Especie">
+      <Field label={isEn ? "Species" : "Especie"}>
         <Input
           value={props.species}
           onChange={(e) => props.setSpecies(e.target.value)}
-          placeholder="Ej: Costilla de Adán"
+          placeholder={isEn ? "e.g. Swiss Cheese Plant" : "Ej: Costilla de Adán"}
         />
       </Field>
 
-      <Field label="Nombre científico">
+      <Field label={isEn ? "Scientific Name" : "Nombre científico"}>
         <Input
           value={props.scientificName}
           onChange={(e) => props.setScientificName(e.target.value)}
-          placeholder="Opcional"
+          placeholder={isEn ? "Optional" : "Opcional"}
         />
       </Field>
 
-      <Field label="Categoría">
+      <Field label={isEn ? "Category" : "Categoría"}>
         <Select
           value={props.category}
           onValueChange={(v) => props.setCategory(v as PlantCategory)}
@@ -475,14 +482,14 @@ function EditForm(props: {
           <SelectContent>
             {ALL_CATEGORIES.map((c) => (
               <SelectItem key={c} value={c}>
-                {CATEGORY_META[c].label}
+                {isEn ? CATEGORY_META[c].label_en || CATEGORY_META[c].label : CATEGORY_META[c].label}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
       </Field>
 
-      <Field label="Dónde la tenés">
+      <Field label={isEn ? "Location" : "Dónde la tenés"}>
         <Select
           value={props.location}
           onValueChange={(v) => props.setLocation(v as PlantLocation)}
@@ -493,17 +500,17 @@ function EditForm(props: {
           <SelectContent>
             {ALL_LOCATIONS.map((l) => (
               <SelectItem key={l} value={l}>
-                {LOCATION_META[l].label}
+                {isEn ? LOCATION_META[l].label_en || LOCATION_META[l].label : LOCATION_META[l].label}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
         <p className="mt-1 text-xs text-muted-foreground">
-          {LOCATION_META[props.location].description}
+          {isEn ? LOCATION_META[props.location].description_en || LOCATION_META[props.location].description : LOCATION_META[props.location].description}
         </p>
       </Field>
 
-      <Field label="Modo de cuidado">
+      <Field label={isEn ? "Care Mode" : "Modo de cuidado"}>
         <Select
           value={props.wateringMode}
           onValueChange={(v) => props.setWateringMode(v as WateringMode)}
@@ -514,18 +521,18 @@ function EditForm(props: {
           <SelectContent>
             {WATERING_MODES.map((m) => (
               <SelectItem key={m} value={m}>
-                {WATERING_MODE_META[m].label}
+                {isEn ? WATERING_MODE_META[m].label_en || WATERING_MODE_META[m].label : WATERING_MODE_META[m].label}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
         <p className="mt-1 text-xs text-muted-foreground">
-          {WATERING_MODE_META[props.wateringMode].description}
+          {isEn ? WATERING_MODE_META[props.wateringMode].description_en || WATERING_MODE_META[props.wateringMode].description : WATERING_MODE_META[props.wateringMode].description}
         </p>
       </Field>
 
       <Field
-        label={`${WATERING_MODE_META[props.wateringMode].actionVerb} cada (días)`}
+        label={isEn ? `${WATERING_MODE_META[props.wateringMode].actionVerb_en || WATERING_MODE_META[props.wateringMode].actionVerb} every (days)` : `${WATERING_MODE_META[props.wateringMode].actionVerb} cada (días)`}
       >
         <Input
           type="number"
@@ -539,7 +546,7 @@ function EditForm(props: {
         />
       </Field>
 
-      <Field label="Luz">
+      <Field label={isEn ? "Light" : "Luz"}>
         <Select
           value={props.lightNeeds}
           onValueChange={(v) => props.setLightNeeds(v as Plant["lightNeeds"])}
@@ -548,19 +555,19 @@ function EditForm(props: {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="alta">Sol pleno</SelectItem>
-            <SelectItem value="media">Luz indirecta</SelectItem>
-            <SelectItem value="baja">Sombra</SelectItem>
+            <SelectItem value="alta">{isEn ? "Full sun" : "Sol pleno"}</SelectItem>
+            <SelectItem value="media">{isEn ? "Indirect light" : "Luz indirecta"}</SelectItem>
+            <SelectItem value="baja">{isEn ? "Shade" : "Sombra"}</SelectItem>
           </SelectContent>
         </Select>
       </Field>
 
-      <Field label="Notas">
+      <Field label={isEn ? "Notes" : "Notas"}>
         <Textarea
           value={props.notes}
           onChange={(e) => props.setNotes(e.target.value)}
           rows={3}
-          placeholder="Lo que quieras recordar de esta planta..."
+          placeholder={isEn ? "Anything you want to remember..." : "Lo que quieras recordar de esta planta..."}
         />
       </Field>
     </div>
