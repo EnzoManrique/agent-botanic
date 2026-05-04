@@ -161,8 +161,12 @@ function Steps({ origin }: { origin: string }) {
       <Step
         number={1}
         title="Creá un atajo nuevo"
-        body="Abrí la app Atajos en tu iPhone (tiene un ícono violeta). Tocá el botón + arriba a la derecha. Luego tocá “Agregar acción”, buscá URL y elegí “Obtener contenido de URL”."
-      />
+        body="Abrí la app Atajos (ícono violeta). Tocá el botón + arriba a la derecha. Luego tocá “Agregar acción”, buscá la palabra CONTENIDO y elegí la que dice “Obtener contenido de URL”."
+      >
+        <p className="mt-2 text-[11px] leading-relaxed text-amber-600 font-medium">
+          ⚠️ Ojo: NO elijas la que dice &quot;componente&quot;, elegí la que tiene el ícono de un globo terráqueo azul o verde.
+        </p>
+      </Step>
 
       <Step
         number={2}
@@ -193,15 +197,18 @@ function Steps({ origin }: { origin: string }) {
       <Step
         number={3}
         title="Dale permiso a Siri (tu llave secreta)"
-        body="Tocá la flechita ▸ (opciones avanzadas) al lado del campo URL. Bajá hasta “Encabezados” y tocá “Agregar nuevo encabezado”."
+        body="Tocá el circulito azul con la flechita (>) que aparece justo al lado del link que pegaste. Eso despliega opciones. Bajá hasta “Encabezados” y tocá “Agregar nuevo encabezado” UNA SOLA VEZ."
       >
+        <div className="mt-2 text-[11px] leading-relaxed text-foreground/80 mb-2">
+          En la nueva línea que aparece, llená los dos campos:
+        </div>
         <CopyBlock
           value="Authorization"
-          label="1. Pegá esto donde dice 'Clave' o 'Key'"
+          label="1. A la izquierda (Clave / Key)"
         />
         <CopyBlock
           value="Bearer botanic_TU_TOKEN_ACA"
-          label="2. Pegá esto donde dice 'Texto' o 'Value'"
+          label="2. A la derecha (Texto / Value)"
         />
         <p className="mt-2 text-xs leading-relaxed text-muted-foreground text-pretty">
           Ojo: reemplazá <strong>botanic_TU_TOKEN_ACA</strong> por el token que generaste más arriba, dejando el espacio después de Bearer.
@@ -211,13 +218,17 @@ function Steps({ origin }: { origin: string }) {
       <Step
         number={4}
         title="Hacé que Siri hable"
-        body="Volvé a tocar “Agregar acción” abajo de todo, buscá Hablar y elegí “Hablar texto”."
-      />
+        body="Volvé a tocar “Agregar acción” abajo de todo, buscá la palabra HABLAR y elegí la que dice “Hablar texto” o “Leer texto”."
+      >
+        <p className="mt-2 text-[11px] leading-relaxed text-amber-600 font-medium">
+          ⚠️ Cuidado: NO elijas &quot;Dictar texto&quot; (eso es para que vos le hables). Tiene que ser la del ícono del parlante.
+        </p>
+      </Step>
 
       <Step
         number={5}
         title="Ponele nombre y guardalo"
-        body="Tocá el nombre arriba de todo y ponele algo como “Mis plantas”. Ese es el nombre mágico que le vas a decir a Siri. ¡Tocá Listo y ya está!"
+        body="Arriba de todo, en el medio de la pantalla, vas a ver un nombre automático (tipo 'Obtener contenido...'). Tocalo, elegí 'Renombrar' y escribí un nombre cortito como 'Mis plantas'. ¡Ese es el nombre mágico que le vas a decir a Siri! Tocá Listo y ya terminaste."
       />
     </ol>
   )
@@ -244,7 +255,7 @@ function FinalSection() {
       <p className="mt-3 text-xs leading-relaxed text-muted-foreground text-pretty">
         Siri va a ejecutar el atajo y leerte en voz alta cuáles necesitan
         riego hoy. Si te dice algo raro, revisá que el token esté bien
-        pegado en el paso 6.
+        pegado en el <strong>paso 3</strong>.
       </p>
     </section>
   )

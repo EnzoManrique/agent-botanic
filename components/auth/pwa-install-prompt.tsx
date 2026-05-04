@@ -1,12 +1,13 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Download, X, Share } from "lucide-react"
+import { Download, X, Share, Smartphone } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 export function PwaInstallPrompt() {
   const [isInstallable, setIsInstallable] = useState(false)
   const [isIOS, setIsIOS] = useState(false)
+  const [isDesktop, setIsDesktop] = useState(false)
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null)
   const [showPrompt, setShowPrompt] = useState(false)
 
@@ -19,7 +20,18 @@ export function PwaInstallPrompt() {
       return
     }
 
-    // 2. Detectar iOS (no soporta beforeinstallprompt nativo)
+    // 2. Detectar si es Desktop
+    const mobileRegex = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i
+    const isMobileDevice = mobileRegex.test(navigator.userAgent)
+    
+    if (!isMobileDevice) {
+      setIsDesktop(true)
+      // Mostramos la alerta de desktop con delay
+      const timer = setTimeout(() => setShowPrompt(true), 1000)
+      return () => clearTimeout(timer)
+    }
+
+    // 3. Detectar iOS (no soporta beforeinstallprompt nativo)
     const isIosDevice =
       /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream
     
@@ -33,7 +45,7 @@ export function PwaInstallPrompt() {
       return () => clearTimeout(timer)
     }
 
-    // 3. Detectar navegadores que soportan PWA de forma estándar (Chrome, Edge, etc en Android)
+    // 4. Detectar navegadores que soportan PWA de forma estándar (Chrome, Edge, etc en Android)
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault() // Evita que Chrome muestre el mini-infobar automático (opcional, pero da más control)
       setDeferredPrompt(e)
@@ -69,8 +81,47 @@ export function PwaInstallPrompt() {
     localStorage.setItem("pwaPromptDismissed", "true")
   }
 
-  if (!showPrompt || !isInstallable) return null
+  if (!showPrompt) return null
 
+  // UI para Desktop
+  if (isDesktop) {
+    return (
+      <div className="fixed bottom-0 left-1/2 z-50 w-full max-w-md -translate-x-1/2 animate-in slide-in-from-bottom-5 fade-in duration-300">
+        <div className="m-4 flex flex-col gap-3 rounded-2xl border-2 border-primary/20 bg-card p-4 shadow-xl">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex flex-1 items-start gap-3">
+              <div
+                className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-soft"
+                aria-hidden="true"
+              >
+                <Smartphone className="size-5" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="font-serif text-base font-semibold leading-none">
+                  App diseñada para celular
+                </h3>
+                <p className="text-xs text-muted-foreground leading-relaxed text-pretty">
+                  Secretary Botanic funciona mucho mejor en un celular. ¡Abrí esta página en tu teléfono para escanear plantas con la cámara!
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={handleDismiss}
+              className="text-muted-foreground hover:bg-secondary flex size-8 items-center justify-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              aria-label="Cerrar aviso"
+            >
+              <X className="size-4" />
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Si no es instalable (y no es desktop ni iOS), no mostramos nada
+  if (!isInstallable && !isIOS) return null
+
+  // UI para PWA / iOS
   return (
     <div className="fixed bottom-0 left-1/2 z-50 w-full max-w-md -translate-x-1/2 animate-in slide-in-from-bottom-5 fade-in duration-300">
       <div className="m-4 flex flex-col gap-3 rounded-2xl border-2 border-primary/20 bg-card p-4 shadow-xl">
@@ -88,7 +139,7 @@ export function PwaInstallPrompt() {
               </h3>
               {isIOS ? (
                 <p className="text-xs text-muted-foreground leading-relaxed text-pretty">
-                  Para una mejor experiencia, tocá el ícono de <Share className="inline size-3 pb-[1px]" /> compartir y luego elegí <strong className="font-semibold text-foreground">"Agregar a Inicio"</strong>.
+                  Para una mejor experiencia, tocá el ícono de <Share className="inline size-3 pb-[1px]" /> compartir y luego elegí <strong className="font-semibold text-foreground">&quot;Agregar a Inicio&quot;</strong>.
                 </p>
               ) : (
                 <p className="text-xs text-muted-foreground leading-relaxed text-pretty">
