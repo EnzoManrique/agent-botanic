@@ -77,13 +77,13 @@ export function HomeView({
           icon={<Leaf className="size-5" aria-hidden="true" />}
           label={t("home", "in_garden")}
           value={plants.length}
-          unit={plants.length === 1 ? t("home", "plant_count") : t("home", "plants_count")}
+          unit={plants.length === 1 ? t("home", "plant") : t("home", "plants")}
         />
         <StatCard
           icon={<Droplets className="size-5" aria-hidden="true" />}
           label={t("home", "needs_watering")}
           value={needsWatering.length}
-          unit={needsWatering.length === 1 ? t("home", "plant_count") : t("home", "plants_count")}
+          unit={needsWatering.length === 1 ? t("home", "plant") : t("home", "plants")}
           accent
         />
       </section>
@@ -403,7 +403,7 @@ function LocationSummary({ plants }: { plants: Plant[] }) {
                   <p className="font-semibold leading-tight">{t("garden", loc)}</p>
                   <span className="text-xs font-semibold tabular-nums text-muted-foreground">
                     {list.length}{" "}
-                    {list.length === 1 ? t("home", "plant_count") : t("home", "plants_count")}
+                    {list.length === 1 ? t("home", "plant") : t("home", "plants")}
                   </span>
                 </div>
                 <p className="mt-0.5 text-sm leading-snug text-muted-foreground text-pretty">
