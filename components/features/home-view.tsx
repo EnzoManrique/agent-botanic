@@ -167,6 +167,7 @@ export function HomeView({
  * pantalla se sienta saturada.
  */
 function ExtraAlertsList({ alerts }: { alerts: WeatherAlert[] }) {
+  const { t } = useLanguage()
   return (
     <section className="px-5">
       <p className="mb-2 text-xs font-semibold tracking-wide uppercase text-muted-foreground">
@@ -213,6 +214,7 @@ function ExtraAlertsList({ alerts }: { alerts: WeatherAlert[] }) {
  * un CTA para llevar la conversación al chat del agente.
  */
 function ProactiveAdviceCard({ advice }: { advice: ProactiveAdvice }) {
+  const { t } = useLanguage()
   const isHigh = advice.severity === "high"
   return (
     <section className="px-5">
@@ -267,6 +269,7 @@ function WaterRow({
   onWater: () => void
   isPending?: boolean
 }) {
+  const { t } = useLanguage()
   const days =
     plant.lastWateredAt === null
       ? null
