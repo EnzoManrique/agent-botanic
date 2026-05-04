@@ -19,7 +19,9 @@
     "all_good": "¡Todo en orden!",
     "no_watering": "No hay riegos pendientes. Disfrutá tu jardín.",
     "scan_new": "Escanear nueva planta",
-    "scan_desc": "Identificá especies con IA y sumá al jardín."
+    "scan_desc": "Identificá especies con IA y sumá al jardín.",
+    "where_are_plants": "Dónde están tus plantas",
+    "where_are_plants_desc": "Útil cuando hay alerta de viento o granizo."
   },
   "profile": {
     "title": "Perfil",
@@ -31,15 +33,60 @@
     "integrations": "Integraciones",
     "save": "Guardar Cambios",
     "saving": "Guardando...",
-    "logout": "Cerrar Sesión"
+    "logout": "Cerrar Sesión",
+    "subtitle": "Personalizá tu experiencia.",
+    "agent_settings_title": "Personalidad del Agente",
+    "agent_settings_desc": "Define el tono de las respuestas en el chat del agente.",
+    "advice_frequency": "Frecuencia de consejos",
+    "advice_desc": "Proactivo te avisa antes de heladas, riegos o vientos fuertes.",
+    "weather_location_title": "Clima y ubicación",
+    "weather_location_desc": "Personalizá las alertas locales para tu jardín.",
+    "city": "Ciudad"
   },
   "agent": {
     "title": "Agente",
-    "placeholder": "Preguntale a Botanic sobre tus plantas...",
-    "thinking": "Botanic está pensando..."
+    "placeholder": "Escribí tu pregunta...",
+    "thinking": "Botanic está pensando...",
+    "subtitle": "Pregunta sobre clima, riegos y cuidados.",
+    "greeting": "Hola, ¿en qué te ayudo?",
+    "greeting_desc": "Reviso el clima, cuido tu jardín, busco productos y diagnostico problemas desde una foto.",
+    "sugg_1": "¿Conviene regar hoy?",
+    "sugg_2": "¿Cómo está mi jardín?",
+    "sugg_3": "Diagnosticar por foto",
+    "sugg_4": "Buscar fertilizante",
+    "sugg_5": "¿Hay alerta esta semana?",
+    "sugg_6": "Consejos de cuidado"
   },
   "scan": {
     "title": "Escanear",
     "instruction": "Subí o tomá una foto de tu planta para identificarla."
+  },
+  "garden": {
+    "title": "Mi jardín",
+    "all": "Todas",
+    "indoor": "Interior",
+    "outdoor": "Exterior",
+    "covered": "Cubierto",
+    "greenhouse": "Invernadero",
+    "interior": "Interior",
+    "exterior": "Exterior",
+    "cubierto": "Cubierto",
+    "invernadero": "Invernadero",
+    "suculenta": "Suculentas",
+    "comestible": "Comestibles",
+    "floracion": "Florales",
+    "tropical": "Tropicales",
+    "trepadora": "Trepadoras",
+    "arbol": "Árboles",
+    "acuatica": "Acuáticas",
+    "hidroponia": "Hidropónicas",
+    "epifita": "Epífitas",
+    "bonsai": "Bonsai",
+    "light_alta": "Alta (sol directo)",
+    "light_media": "Media (luz indirecta)",
+    "light_baja": "Baja (sombra / poca luz)",
+    "today": "Hoy",
+    "every_x_days": "cada {x} d",
+    "in_x_days": "En {x} días"
   }
 }

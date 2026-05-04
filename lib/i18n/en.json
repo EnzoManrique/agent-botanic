@@ -19,7 +19,9 @@
     "all_good": "All good!",
     "no_watering": "No pending watering. Enjoy your garden.",
     "scan_new": "Scan new plant",
-    "scan_desc": "Identify species with AI and add to your garden."
+    "scan_desc": "Identify species with AI and add to your garden.",
+    "where_are_plants": "Where are your plants",
+    "where_are_plants_desc": "Useful when there is a wind or hail alert."
   },
   "profile": {
     "title": "Profile",
@@ -31,15 +33,60 @@
     "integrations": "Integrations",
     "save": "Save Changes",
     "saving": "Saving...",
-    "logout": "Log Out"
+    "logout": "Log Out",
+    "subtitle": "Customize your experience.",
+    "agent_settings_title": "Agent Personality",
+    "agent_settings_desc": "Set the tone of the agent's chat responses.",
+    "advice_frequency": "Advice Frequency",
+    "advice_desc": "Proactive notifies you before frosts, watering, or strong winds.",
+    "weather_location_title": "Weather & Location",
+    "weather_location_desc": "Customize local alerts for your garden.",
+    "city": "City"
   },
   "agent": {
     "title": "Agent",
-    "placeholder": "Ask Botanic about your plants...",
-    "thinking": "Botanic is thinking..."
+    "placeholder": "Type your question...",
+    "thinking": "Botanic is thinking...",
+    "subtitle": "Ask about weather, watering, and care.",
+    "greeting": "Hello, how can I help you?",
+    "greeting_desc": "I check the weather, care for your garden, search for products, and diagnose problems from a photo.",
+    "sugg_1": "Should I water today?",
+    "sugg_2": "How is my garden?",
+    "sugg_3": "Diagnose from photo",
+    "sugg_4": "Search fertilizer",
+    "sugg_5": "Is there an alert this week?",
+    "sugg_6": "Care tips"
   },
   "scan": {
     "title": "Scan",
     "instruction": "Upload or take a photo of your plant to identify it."
+  },
+  "garden": {
+    "title": "My garden",
+    "all": "All",
+    "indoor": "Indoor",
+    "outdoor": "Outdoor",
+    "covered": "Covered",
+    "greenhouse": "Greenhouse",
+    "interior": "Indoor",
+    "exterior": "Outdoor",
+    "cubierto": "Covered",
+    "invernadero": "Greenhouse",
+    "suculenta": "Succulents",
+    "comestible": "Edibles",
+    "floracion": "Flowers",
+    "tropical": "Tropicals",
+    "trepadora": "Vines",
+    "arbol": "Trees",
+    "acuatica": "Aquatics",
+    "hidroponia": "Hydroponics",
+    "epifita": "Epiphytes",
+    "bonsai": "Bonsai",
+    "light_alta": "High (direct sun)",
+    "light_media": "Medium (indirect light)",
+    "light_baja": "Low (shade / low light)",
+    "today": "Today",
+    "every_x_days": "every {x} d",
+    "in_x_days": "In {x} days"
   }
 }

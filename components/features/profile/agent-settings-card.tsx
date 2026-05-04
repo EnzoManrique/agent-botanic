@@ -12,32 +12,36 @@ import { Field, FieldGroup, FieldLabel, FieldDescription } from "@/components/ui
 import { SettingsSection } from "./settings-section"
 import type { AdviceFrequency, AgentPersonality, UserSettings } from "@/lib/types"
 
+import { useLanguage } from "@/lib/i18n/context"
+
 interface AgentSettingsCardProps {
   agent: UserSettings["agent"]
   onChange: (agent: UserSettings["agent"]) => void
 }
 
-const PERSONALITY_LABEL: Record<AgentPersonality, string> = {
-  scientist: "Científico (formal y preciso)",
-  friendly: "Amistoso (lúdico y cálido)",
-  guru: "Gurú zen (sabio y pausado)",
-}
-
-const FREQUENCY_LABEL: Record<AdviceFrequency, string> = {
-  proactive: "Proactivo (notificaciones automáticas)",
-  manual: "Manual (sólo cuando pregunto)",
-}
-
 export function AgentSettingsCard({ agent, onChange }: AgentSettingsCardProps) {
+  const { t, language } = useLanguage()
+
+  const PERSONALITY_LABEL: Record<AgentPersonality, string> = {
+    scientist: language === "en" ? "Scientist (formal and precise)" : "Científico (formal y preciso)",
+    friendly: language === "en" ? "Friendly (playful and warm)" : "Amistoso (lúdico y cálido)",
+    guru: language === "en" ? "Zen Guru (wise and slow)" : "Gurú zen (sabio y pausado)",
+  }
+
+  const FREQUENCY_LABEL: Record<AdviceFrequency, string> = {
+    proactive: language === "en" ? "Proactive (automatic notifications)" : "Proactivo (notificaciones automáticas)",
+    manual: language === "en" ? "Manual (only when I ask)" : "Manual (sólo cuando pregunto)",
+  }
+
   return (
     <SettingsSection
       icon={<Sparkles className="size-5" />}
-      title="Configuración del agente"
-      description="Ajustá cómo te habla y cuándo aparece tu jardinero IA."
+      title={t("profile", "agent_settings_title")}
+      description=""
     >
       <FieldGroup>
         <Field>
-          <FieldLabel htmlFor="agent-personality">Personalidad</FieldLabel>
+          <FieldLabel htmlFor="agent-personality">{t("profile", "agent_settings_title")}</FieldLabel>
           <Select
             value={agent.personality}
             onValueChange={(v) =>
@@ -72,13 +76,13 @@ export function AgentSettingsCard({ agent, onChange }: AgentSettingsCardProps) {
             </SelectContent>
           </Select>
           <FieldDescription>
-            Define el tono de las respuestas en el chat del agente.
+            {t("profile", "agent_settings_desc")}
           </FieldDescription>
         </Field>
 
         <Field>
           <FieldLabel htmlFor="agent-frequency">
-            Frecuencia de consejos
+            {t("profile", "advice_frequency")}
           </FieldLabel>
           <Select
             value={agent.adviceFrequency}
@@ -108,7 +112,7 @@ export function AgentSettingsCard({ agent, onChange }: AgentSettingsCardProps) {
             </SelectContent>
           </Select>
           <FieldDescription>
-            Proactivo te avisa antes de heladas, riegos o vientos fuertes.
+            {t("profile", "advice_desc")}
           </FieldDescription>
         </Field>
       </FieldGroup>

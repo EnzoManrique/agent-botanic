@@ -361,6 +361,8 @@ function WaterRow({
  * llenar la pantalla con tarjetas vacías.
  */
 function LocationSummary({ plants }: { plants: Plant[] }) {
+  const { t } = useLanguage()
+  
   // Agrupamos por location en una sola pasada — más prolijo que filtrar
   // 4 veces el array.
   const grouped = plants.reduce<Record<PlantLocation, Plant[]>>(
@@ -382,10 +384,10 @@ function LocationSummary({ plants }: { plants: Plant[] }) {
       <div className="flex items-end justify-between">
         <div>
           <h2 className="font-serif text-xl leading-tight font-semibold">
-            Dónde están tus plantas
+            {t("home", "where_are_plants")}
           </h2>
           <p className="text-xs text-muted-foreground">
-            Útil cuando hay alerta de viento o granizo.
+            {t("home", "where_are_plants_desc")}
           </p>
         </div>
       </div>
@@ -413,10 +415,10 @@ function LocationSummary({ plants }: { plants: Plant[] }) {
               </span>
               <div className="min-w-0 flex-1">
                 <div className="flex items-baseline justify-between gap-2">
-                  <p className="font-semibold leading-tight">{meta.label}</p>
+                  <p className="font-semibold leading-tight">{t("garden", loc)}</p>
                   <span className="text-xs font-semibold tabular-nums text-muted-foreground">
                     {list.length}{" "}
-                    {list.length === 1 ? "planta" : "plantas"}
+                    {list.length === 1 ? t("home", "plant") || "planta" : t("home", "plants") || "plantas"}
                   </span>
                 </div>
                 <p className="mt-0.5 text-sm leading-snug text-muted-foreground text-pretty">

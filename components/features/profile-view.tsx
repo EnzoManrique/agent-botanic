@@ -97,7 +97,7 @@ export function ProfileView({
       <ScreenHeader
         eyebrow={t("profile", "settings")}
         title={t("profile", "title")}
-        subtitle="Personalizá tu experiencia."
+        subtitle={t("profile", "subtitle")}
         icon={<ArrowLeft className="size-5" aria-hidden="true" />}
         onIconClick={handleBack}
         iconLabel="Volver"

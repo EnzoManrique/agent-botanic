@@ -50,38 +50,36 @@ type Suggestion = {
   prompt: string
 }
 
-const SUGGESTIONS: Suggestion[] = [
+const getSuggestions = (t: any) => [
   {
     icon: Cloud,
-    label: "¿Conviene regar hoy?",
-    prompt: "¿Conviene regar hoy según el clima de mi ciudad?",
+    label: t("agent", "sugg_1") || "¿Conviene regar hoy?",
+    prompt: t("agent", "sugg_1_prompt") || "¿Conviene regar hoy según el clima de mi ciudad?",
   },
   {
     icon: Sprout,
-    label: "¿Cómo está mi jardín?",
-    prompt: "Resumime el estado de mis plantas y qué necesita atención.",
+    label: t("agent", "sugg_2") || "¿Cómo está mi jardín?",
+    prompt: t("agent", "sugg_2_prompt") || "Resumime el estado de mis plantas y qué necesita atención.",
   },
   {
     icon: Scan,
-    label: "Diagnosticar por foto",
-    prompt:
-      "Te voy a adjuntar una foto de una hoja con manchas — decime qué tiene y cómo lo soluciono.",
+    label: t("agent", "sugg_3") || "Diagnosticar por foto",
+    prompt: t("agent", "sugg_3_prompt") || "Te voy a adjuntar una foto de una hoja con manchas — decime qué tiene y cómo lo soluciono.",
   },
   {
     icon: ShoppingBag,
-    label: "Buscar fertilizante",
-    prompt: "Buscame opciones de fertilizante para potus en Mercado Libre.",
+    label: t("agent", "sugg_4") || "Buscar fertilizante",
+    prompt: t("agent", "sugg_4_prompt") || "Buscame opciones de fertilizante para potus en Mercado Libre.",
   },
   {
     icon: CloudHail,
-    label: "¿Hay alerta esta semana?",
-    prompt: "¿Hay riesgo de granizo, helada o viento fuerte esta semana?",
+    label: t("agent", "sugg_5") || "¿Hay alerta esta semana?",
+    prompt: t("agent", "sugg_5_prompt") || "¿Hay riesgo de granizo, helada o viento fuerte esta semana?",
   },
   {
     icon: Leaf,
-    label: "Consejos de cuidado",
-    prompt:
-      "¿Cómo cuido una suculenta en interior durante el invierno mendocino?",
+    label: t("agent", "sugg_6") || "Consejos de cuidado",
+    prompt: t("agent", "sugg_6_prompt") || "¿Cómo cuido una suculenta en interior durante el invierno mendocino?",
   },
 ]
 
@@ -233,11 +231,10 @@ export function ChatPanel({ initialPrompt }: { initialPrompt?: string }) {
               </div>
               <div>
                 <p className="font-serif text-lg font-semibold">
-                  Hola, ¿en qué te ayudo?
+                  {t("agent", "greeting") || "Hola, ¿en qué te ayudo?"}
                 </p>
                 <p className="mt-1 text-sm text-muted-foreground text-pretty">
-                  Reviso el clima, cuido tu jardín, busco productos y
-                  diagnostico problemas desde una foto.
+                  {t("agent", "greeting_desc") || "Reviso el clima, cuido tu jardín, busco productos y diagnostico problemas desde una foto."}
                 </p>
               </div>
               {/* Grid de capacidades. En mobile mostramos 1 columna a ancho
@@ -246,7 +243,7 @@ export function ChatPanel({ initialPrompt }: { initialPrompt?: string }) {
                   scrollear. Cada chip lleva su ícono propio para que la
                   capacidad sea reconocible de un vistazo. */}
               <ul className="grid grid-cols-1 gap-2 pt-2 sm:grid-cols-2">
-                {SUGGESTIONS.map(({ icon: Icon, label, prompt }) => (
+                {getSuggestions(t).map(({ icon: Icon, label, prompt }) => (
                   <li key={label} className="contents">
                     <button
                       type="button"
@@ -281,7 +278,7 @@ export function ChatPanel({ initialPrompt }: { initialPrompt?: string }) {
           messages[messages.length - 1]?.role === "user" ? (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Spinner className="size-4" />
-              Pensando...
+              {language === "en" ? "Thinking..." : "Pensando..."}
             </div>
           ) : null}
         </div>
@@ -305,10 +302,10 @@ export function ChatPanel({ initialPrompt }: { initialPrompt?: string }) {
               />
             </div>
             <p className="flex-1 text-xs leading-tight text-muted-foreground">
-              Foto lista para enviar al agente.
+              {language === "en" ? "Photo ready to send to agent." : "Foto lista para enviar al agente."}
               <br />
               <span className="text-foreground/70">
-                Va a usar visión para diagnosticar.
+                {language === "en" ? "Will use vision to diagnose." : "Va a usar visión para diagnosticar."}
               </span>
             </p>
             <Button
@@ -351,8 +348,8 @@ export function ChatPanel({ initialPrompt }: { initialPrompt?: string }) {
           <InputGroupInput
             placeholder={
               pendingImage
-                ? "Contale qué ves o dejá vacío..."
-                : "Escribí tu pregunta..."
+                ? (language === "en" ? "Tell me what you see or leave blank..." : "Contale qué ves o dejá vacío...")
+                : (t("agent", "placeholder") || "Escribí tu pregunta...")
             }
             value={input}
             onChange={(e) => setInput(e.target.value)}

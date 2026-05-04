@@ -30,6 +30,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const setLanguage = (lang: Language) => {
     setLanguageState(lang)
     localStorage.setItem("botanic-lang", lang)
+    document.cookie = `botanic-lang=${lang}; path=/; max-age=31536000`
   }
 
   const t = (section: string, key: string, params?: Record<string, string>) => {

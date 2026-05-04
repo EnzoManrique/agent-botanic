@@ -27,6 +27,7 @@ import { SettingsSection } from "./settings-section"
 import { LocationSearch } from "./location-search"
 import type { TempUnit, UserSettings, WeatherAlertPreferences } from "@/lib/types"
 import { cn } from "@/lib/utils"
+import { useLanguage } from "@/lib/i18n/context"
 
 interface WeatherLocationCardProps {
   location: UserSettings["location"]
@@ -35,48 +36,50 @@ interface WeatherLocationCardProps {
 
 type AlertKey = keyof WeatherAlertPreferences
 
-const ALERT_ITEMS: Array<{
-  key: AlertKey
-  label: string
-  description: string
-  icon: React.ReactNode
-}> = [
-  {
-    key: "zonda",
-    label: "Viento Zonda",
-    description: "Avisa cuando se anuncian ráfagas secas y cálidas.",
-    icon: <Wind className="size-4" />,
-  },
-  {
-    key: "frost",
-    label: "Heladas",
-    description: "Notifica si la temperatura nocturna baja de 2 °C.",
-    icon: <Snowflake className="size-4" />,
-  },
-  {
-    key: "hail",
-    label: "Granizo",
-    description: "Te avisa con tiempo para cubrir tus plantas exteriores.",
-    icon: <CloudRain className="size-4" />,
-  },
-  {
-    key: "heatwave",
-    label: "Ola de calor",
-    description: "Recomienda riego extra cuando supera 35 °C.",
-    icon: <Sun className="size-4" />,
-  },
-  {
-    key: "wateringReminder",
-    label: "Recordatorio de riego",
-    description: "Te avisa cuando alguna planta esté lista para regar.",
-    icon: <Droplets className="size-4" />,
-  },
-]
-
 export function WeatherLocationCard({
   location,
   onChange,
 }: WeatherLocationCardProps) {
+  const { t, language } = useLanguage()
+
+  const ALERT_ITEMS: Array<{
+    key: AlertKey
+    label: string
+    description: string
+    icon: React.ReactNode
+  }> = [
+    {
+      key: "zonda",
+      label: language === "en" ? "Zonda Wind" : "Viento Zonda",
+      description: language === "en" ? "Notifies of dry and warm gusts." : "Avisa cuando se anuncian ráfagas secas y cálidas.",
+      icon: <Wind className="size-4" />,
+    },
+    {
+      key: "frost",
+      label: language === "en" ? "Frosts" : "Heladas",
+      description: language === "en" ? "Notifies if night temp drops below 2°C." : "Notifica si la temperatura nocturna baja de 2 °C.",
+      icon: <Snowflake className="size-4" />,
+    },
+    {
+      key: "hail",
+      label: language === "en" ? "Hail" : "Granizo",
+      description: language === "en" ? "Notifies early to cover outdoor plants." : "Te avisa con tiempo para cubrir tus plantas exteriores.",
+      icon: <CloudRain className="size-4" />,
+    },
+    {
+      key: "heatwave",
+      label: language === "en" ? "Heatwave" : "Ola de calor",
+      description: language === "en" ? "Recommends extra watering over 35°C." : "Recomienda riego extra cuando supera 35 °C.",
+      icon: <Sun className="size-4" />,
+    },
+    {
+      key: "wateringReminder",
+      label: language === "en" ? "Watering reminder" : "Recordatorio de riego",
+      description: language === "en" ? "Notifies when a plant is ready to water." : "Te avisa cuando alguna planta esté lista para regar.",
+      icon: <Droplets className="size-4" />,
+    },
+  ]
+
   function setAlert(key: AlertKey, value: boolean) {
     onChange({
       ...location,
@@ -87,12 +90,12 @@ export function WeatherLocationCard({
   return (
     <SettingsSection
       icon={<MapPin className="size-5" />}
-      title="Clima y ubicación"
-      description="Personalizá las alertas locales para tu jardín."
+      title={t("profile", "weather_location_title")}
+      description={t("profile", "weather_location_desc")}
     >
       <FieldGroup>
         <Field>
-          <FieldLabel htmlFor="weather-city">Ciudad</FieldLabel>
+          <FieldLabel htmlFor="weather-city">{t("profile", "city")}</FieldLabel>
           <LocationSearch
             value={location.city}
             lat={location.lat}
@@ -104,7 +107,7 @@ export function WeatherLocationCard({
         </Field>
 
         <Field>
-          <FieldLabel htmlFor="temp-unit">Unidades de temperatura</FieldLabel>
+          <FieldLabel htmlFor="temp-unit">{language === "en" ? "Temperature Unit" : "Unidades de temperatura"}</FieldLabel>
           <Select
             value={location.tempUnit}
             onValueChange={(v) =>
@@ -136,7 +139,7 @@ export function WeatherLocationCard({
       </FieldGroup>
 
       <div className="flex flex-col gap-2 rounded-2xl border-2 border-dashed border-border bg-secondary/40 p-3">
-        <p className="font-serif text-sm font-semibold">Alertas activas</p>
+        <p className="font-serif text-sm font-semibold">{language === "en" ? "Active Alerts" : "Alertas activas"}</p>
         <ul className="flex flex-col gap-2">
           {ALERT_ITEMS.map((item) => {
             const enabled = location.alerts[item.key]

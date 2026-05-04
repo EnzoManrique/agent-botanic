@@ -6,6 +6,8 @@ import type { PlantCategory } from "@/lib/types"
 import type { GardenFilter } from "./garden-view"
 import { cn } from "@/lib/utils"
 
+import { useLanguage } from "@/lib/i18n/context"
+
 /**
  * Header del jardín. `fixed` para que los chips de categoría sigan
  * accesibles cuando la usuaria scrollea las plantas.
@@ -26,16 +28,18 @@ export function CategoryNavbar({
   defaultTab: GardenFilter
   onTabChange: (tab: GardenFilter) => void
 }) {
+  const { t } = useLanguage()
+  
   const tabs: Array<{
     id: GardenFilter
     label: string
     icon: typeof LayoutGrid
     count: number
   }> = [
-    { id: "all", label: "Todas", icon: LayoutGrid, count: totalPlants },
+    { id: "all", label: t("garden", "all") || "Todas", icon: LayoutGrid, count: totalPlants },
     ...ALL_CATEGORIES.map((cat) => ({
       id: cat as GardenFilter,
-      label: CATEGORY_META[cat].label,
+      label: t("garden", cat) || CATEGORY_META[cat].label,
       icon: CATEGORY_META[cat].icon,
       count: groupedByCategory[cat] ?? 0,
     })),
@@ -54,10 +58,10 @@ export function CategoryNavbar({
           <Sprout className="size-5" />
         </div>
         <h1 className="font-serif text-2xl leading-tight font-bold flex-1 min-w-0">
-          Mi jardín
+          {t("garden", "title") || "Mi jardín"}
         </h1>
         <p className="text-sm font-medium text-muted-foreground whitespace-nowrap tabular-nums">
-          {totalPlants} {totalPlants === 1 ? "planta" : "plantas"}
+          {totalPlants} {totalPlants === 1 ? t("home", "plant") || "planta" : t("home", "plants") || "plantas"}
         </p>
       </div>
 

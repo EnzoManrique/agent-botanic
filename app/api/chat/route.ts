@@ -181,7 +181,7 @@ ESTILO DE RESPUESTA
           try {
             const forecast = await getForecast(city)
             const alerts = evaluateAlerts(forecast, alertPrefs)
-            const proactiveAdvice = buildProactiveAdvice(alerts, plantsRaw as any)
+            const proactiveAdvice = buildProactiveAdvice(alerts, plantsRaw as any, language)
             return {
               location: forecast.location.label,
               now: {

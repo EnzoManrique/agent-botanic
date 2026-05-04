@@ -56,6 +56,8 @@ import type {
 } from "@/lib/types"
 import type { PlantDetailsPatch } from "@/lib/actions/plants"
 
+import { useLanguage } from "@/lib/i18n/context"
+
 const LIGHT_ICONS = { alta: Sun, media: CloudSun, baja: Moon } as const
 const LIGHT_LABELS = {
   alta: "Sol pleno",
@@ -89,6 +91,7 @@ export function PlantDetailsDialog({
   onEdit,
   onDelete,
 }: Props) {
+  const { t, language } = useLanguage()
   const [mode, setMode] = useState<"view" | "edit">("view")
   const [confirmDelete, setConfirmDelete] = useState(false)
 
@@ -178,7 +181,7 @@ export function PlantDetailsDialog({
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
             <DialogHeader className="absolute right-4 bottom-3 left-4 space-y-0 text-left">
               <DialogTitle className="font-serif text-2xl text-white drop-shadow-md">
-                {mode === "edit" ? `Editando ${plant.alias}` : plant.alias}
+                {mode === "edit" ? (language === "en" ? `Editing ${plant.alias}` : `Editando ${plant.alias}`) : plant.alias}
               </DialogTitle>
               <DialogDescription className="text-white/90 drop-shadow">
                 {plant.species}
@@ -196,8 +199,9 @@ export function PlantDetailsDialog({
                 CareIcon={CareIcon}
                 LightIcon={LightIcon}
                 CategoryIcon={CategoryIcon}
-                categoryLabel={categoryMeta.label}
-                lightLabel={LIGHT_LABELS[plant.lightNeeds]}
+                categoryLabel={t("garden", plant.category) || categoryMeta.label}
+                lightLabel={t("garden", `light_${plant.lightNeeds}`) || LIGHT_LABELS[plant.lightNeeds]}
+                language={language}
               />
             ) : (
               <EditForm
@@ -235,7 +239,7 @@ export function PlantDetailsDialog({
                   disabled={isDeleting}
                 >
                   <Trash2 className="size-4" aria-hidden="true" />
-                  Borrar
+                  {language === "en" ? "Delete" : "Borrar"}
                 </Button>
                 <Button
                   variant="secondary"
@@ -244,7 +248,7 @@ export function PlantDetailsDialog({
                   className="rounded-2xl"
                 >
                   <Pencil className="size-4" aria-hidden="true" />
-                  Editar
+                  {language === "en" ? "Edit" : "Editar"}
                 </Button>
               </>
             ) : (
@@ -256,7 +260,7 @@ export function PlantDetailsDialog({
                   disabled={isSaving}
                 >
                   <X className="size-4" aria-hidden="true" />
-                  Cancelar
+                  {language === "en" ? "Cancel" : "Cancelar"}
                 </Button>
                 <Button
                   size="sm"
@@ -267,12 +271,12 @@ export function PlantDetailsDialog({
                   {isSaving ? (
                     <>
                       <Spinner className="size-4" />
-                      Guardando...
+                      {language === "en" ? "Saving..." : "Guardando..."}
                     </>
                   ) : (
                     <>
                       <Save className="size-4" aria-hidden="true" />
-                      Guardar
+                      {language === "en" ? "Save" : "Guardar"}
                     </>
                   )}
                 </Button>
@@ -341,28 +345,29 @@ function ViewContent({
   CategoryIcon: React.ComponentType<{ className?: string; "aria-hidden"?: boolean }>
   categoryLabel: string
   lightLabel: string
+  language: string
 }) {
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-2">
         <InfoTile
-          label="Categoría"
+          label={language === "en" ? "Category" : "Categoría"}
           value={categoryLabel}
           Icon={CategoryIcon}
         />
         <InfoTile
-          label="Dónde vive"
-          value={LOCATION_META[plant.location].label}
+          label={language === "en" ? "Location" : "Dónde vive"}
+          value={language === "en" ? LOCATION_META[plant.location].shortLabel : LOCATION_META[plant.location].label}
           Icon={LOCATION_META[plant.location].icon}
         />
-        <InfoTile label="Luz" value={lightLabel} Icon={LightIcon} />
+        <InfoTile label={language === "en" ? "Light" : "Luz"} value={lightLabel} Icon={LightIcon} />
         <InfoTile
           label={careMeta.label}
-          value={`Cada ${plant.wateringFrequencyDays} d`}
+          value={language === "en" ? `Every ${plant.wateringFrequencyDays} days` : `Cada ${plant.wateringFrequencyDays} d`}
           Icon={CareIcon}
         />
         <InfoTile
-          label="Último cuidado"
+          label={language === "en" ? "Last Care" : "Último cuidado"}
           value={formatDate(plant.lastWateredAt)}
           Icon={CalendarDays}
         />
@@ -370,7 +375,7 @@ function ViewContent({
 
       <p className="rounded-2xl bg-secondary/60 px-4 py-3 text-sm text-muted-foreground">
         <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-foreground/70">
-          Cómo cuidarla
+          {language === "en" ? "How to care" : "Cómo cuidarla"}
         </span>
         {careMeta.description}
       </p>
@@ -378,14 +383,14 @@ function ViewContent({
       {plant.notes ? (
         <p className="rounded-2xl border border-border bg-card px-4 py-3 text-sm">
           <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Notas
+            {language === "en" ? "Notes" : "Notas"}
           </span>
           {plant.notes}
         </p>
       ) : null}
 
       <p className="text-xs text-muted-foreground">
-        En tu jardín desde {formatDate(plant.createdAt)}
+        {language === "en" ? `In your garden since ${formatDate(plant.createdAt)}` : `En tu jardín desde ${formatDate(plant.createdAt)}`}
       </p>
     </div>
   )

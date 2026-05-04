@@ -7,6 +7,7 @@ import { Spinner } from "@/components/ui/spinner"
 import { LOCATION_META, WATERING_MODE_META } from "@/lib/plant-meta"
 import type { Plant } from "@/lib/types"
 import { cn } from "@/lib/utils"
+import { useLanguage } from "@/lib/i18n/context"
 
 const LIGHT_ICONS = {
   alta: Sun,
@@ -36,6 +37,14 @@ export function PlantCard({
   onOpen: (plant: Plant) => void
   isPending?: boolean
 }) {
+  const { t, language } = useLanguage()
+
+  const LIGHT_LABELS = {
+    alta: t("garden", "light_alta") || "Sol pleno",
+    media: t("garden", "light_media") || "Luz indirecta",
+    baja: t("garden", "light_baja") || "Sombra",
+  } as const
+
   const days = daysSince(plant.lastWateredAt)
   const needsWater = days === null || days >= plant.wateringFrequencyDays
   const LightIcon = LIGHT_ICONS[plant.lightNeeds]
@@ -46,12 +55,12 @@ export function PlantCard({
 
   const wateringStatus =
     days === null
-      ? "Sin cuidado"
+      ? (language === "en" ? "No care" : "Sin cuidado")
       : days === 0
-        ? "Hoy"
+        ? t("garden", "today") || "Hoy"
         : days === 1
-          ? "Hace 1 día"
-          : `Hace ${days} d`
+          ? (language === "en" ? "1 day ago" : "Hace 1 día")
+          : (language === "en" ? `${days} d ago` : `Hace ${days} d`)
 
   return (
     <article
@@ -95,7 +104,7 @@ export function PlantCard({
             <span className="absolute top-2 left-2 inline-flex items-center gap-1 rounded-full bg-accent px-2 py-0.5 text-[10px] font-semibold text-accent-foreground shadow-soft">
               <CareIcon className="size-3" aria-hidden="true" />
               <span className="whitespace-nowrap">
-                {plant.wateringMode === "soil" ? "Toca regar" : careMeta.actionVerb}
+                {plant.wateringMode === "soil" ? (language === "en" ? "Needs water" : "Toca regar") : careMeta.actionVerb}
               </span>
             </span>
           ) : null}
@@ -131,7 +140,7 @@ export function PlantCard({
             <div className="inline-flex items-center gap-1">
               <dt className="sr-only">Frecuencia</dt>
               <dd className="whitespace-nowrap">
-                cada {plant.wateringFrequencyDays} d
+                {t("garden", "every_x_days", { x: String(plant.wateringFrequencyDays) }) || `cada ${plant.wateringFrequencyDays} d`}
               </dd>
             </div>
             <span className="text-border">•</span>
@@ -141,7 +150,7 @@ export function PlantCard({
                 className="size-3.5 text-foreground/60"
                 aria-hidden="true"
               />
-              <dd className="whitespace-nowrap">{locationMeta.shortLabel}</dd>
+              <dd className="whitespace-nowrap">{t("garden", plant.location) || locationMeta.shortLabel}</dd>
             </div>
           </dl>
         </div>
@@ -163,13 +172,13 @@ export function PlantCard({
 
           let label: string
           if (isPending) {
-            label = "Registrando..."
+            label = language === "en" ? "Saving..." : "Registrando..."
           } else if (needsWater) {
-            label = careMeta.actionVerb
+            label = language === "en" ? (plant.wateringMode === "soil" ? "Water" : careMeta.actionVerb) : careMeta.actionVerb
           } else if (daysUntilNext === 1) {
-            label = "Mañana"
+            label = language === "en" ? "Tomorrow" : "Mañana"
           } else {
-            label = `En ${daysUntilNext} días`
+            label = t("garden", "in_x_days", { x: String(daysUntilNext) }) || `En ${daysUntilNext} días`
           }
 
           return (
