@@ -21,7 +21,11 @@
     "scan_new": "Escanear nueva planta",
     "scan_desc": "Identificá especies con IA y sumá al jardín.",
     "where_are_plants": "Dónde están tus plantas",
-    "where_are_plants_desc": "Útil cuando hay alerta de viento o granizo."
+    "where_are_plants_desc": "Útil cuando hay alerta de viento o granizo.",
+    "agent_tip": "Consejo del Agente",
+    "talk_with_agent": "Hablarlo con el agente",
+    "recommendation": "Recomendación",
+    "valid_until": "Vigente hasta"
   },
   "profile": {
     "title": "Perfil",
@@ -44,6 +48,7 @@
     "city": "Ciudad"
   },
   "agent": {
+    "eyebrow": "Agente IA",
     "title": "Agente",
     "placeholder": "Escribí tu pregunta...",
     "thinking": "Botanic está pensando...",
@@ -55,7 +60,16 @@
     "sugg_3": "Diagnosticar por foto",
     "sugg_4": "Buscar fertilizante",
     "sugg_5": "¿Hay alerta esta semana?",
-    "sugg_6": "Consejos de cuidado"
+    "sugg_6": "Consejos de cuidado",
+    "tool_weather": "Consultando clima en vivo",
+    "tool_forecast": "Pidiendo pronóstico de 3 días",
+    "tool_garden": "Revisando tu jardín",
+    "tool_watering": "Calculando próximo riego",
+    "tool_search": "Buscando precios en Mercado Libre",
+    "photo_ready": "Foto lista para enviar al agente.",
+    "vision_desc": "Va a usar visión para diagnosticar.",
+    "input_placeholder_photo": "Contale qué ves o dejá vacío...",
+    "tool_done": "listo"
   },
   "scan": {
     "title": "Escanear",
@@ -87,6 +101,22 @@
     "light_baja": "Baja (sombra / poca luz)",
     "today": "Hoy",
     "every_x_days": "cada {x} d",
-    "in_x_days": "En {x} días"
+    "in_x_days": "En {x} días",
+    "action_regar": "Regar",
+    "action_cambiar_agua": "Cambiar agua",
+    "action_renovar_solucion": "Renovar solución",
+    "action_pulverizar": "Pulverizar",
+    "idle_regar": "Sin regar todavía",
+    "idle_cambiar_agua": "Sin cambiar el agua todavía",
+    "idle_renovar_solucion": "Sin renovar solución todavía",
+    "idle_pulverizar": "Sin pulverizar todavía",
+    "toca_regar": "Toca regar hoy",
+    "toca_cambiar_agua": "Toca cambiar el agua",
+    "toca_renovar_solucion": "Toca renovar la solución",
+    "toca_pulverizar": "Toca pulverizar",
+    "atrasada_dia": "Atrasada 1 día",
+    "atrasada_dias": "Atrasada {x} días",
+    "other_alerts": "Otras alertas activas",
+    "agent_suggests": "El agente sugiere"
   }
 }

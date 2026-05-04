@@ -239,6 +239,7 @@ export function evaluateAlerts(
   forecast: Forecast,
   prefs: WeatherAlertPreferences,
   precipTomorrow = 0,
+  language = "es",
 ): WeatherAlert[] {
   const today = forecast.daily[0]
   const tomorrow = forecast.daily[1]
@@ -246,12 +247,14 @@ export function evaluateAlerts(
 
   if (!today) return alerts
 
+  const isEn = language === "en"
+
   const fmtDay = (d: DailyForecast) =>
     d === today
-      ? "hoy"
+      ? (isEn ? "today" : "hoy")
       : d === tomorrow
-        ? "mañana"
-        : new Date(d.date).toLocaleDateString("es-AR", { weekday: "long" })
+        ? (isEn ? "tomorrow" : "mañana")
+        : new Date(d.date).toLocaleDateString(isEn ? "en-US" : "es-AR", { weekday: "long" })
 
   // ── ZONDA ──────────────────────────────────────────────────────────────────
   if (prefs.zonda) {
@@ -264,13 +267,18 @@ export function evaluateAlerts(
         severity: candidate.windGustsMaxKmh >= 80 ? "high" : "medium",
         title:
           candidate === today
-            ? "Alerta por viento Zonda"
-            : "Pronóstico de Zonda",
-        description: `Ráfagas previstas de hasta ${Math.round(candidate.windGustsMaxKmh)} km/h con humedad bajando a ${Math.round(candidate.humidityMin)} % ${fmtDay(candidate)}.`,
-        recommendation:
-          "Movés las macetas exteriores a un lugar resguardado y revisá los tutores. Adelantá un riego ligero a las plantas sensibles para compensar la deshidratación que provoca el viento seco.",
+            ? (isEn ? "Zonda wind alert" : "Alerta por viento Zonda")
+            : (isEn ? "Zonda forecast" : "Pronóstico de Zonda"),
+        description: isEn 
+          ? `Predicted gusts up to ${Math.round(candidate.windGustsMaxKmh)} km/h with humidity dropping to ${Math.round(candidate.humidityMin)} % ${fmtDay(candidate)}.`
+          : `Ráfagas previstas de hasta ${Math.round(candidate.windGustsMaxKmh)} km/h con humedad bajando a ${Math.round(candidate.humidityMin)} % ${fmtDay(candidate)}.`,
+        recommendation: isEn
+          ? "Move outdoor pots to a sheltered place and check stakes. Pre-emptively water sensitive plants lightly to compensate for the dehydration caused by dry wind."
+          : "Movés las macetas exteriores a un lugar resguardado y revisá los tutores. Adelantá un riego ligero a las plantas sensibles para compensar la deshidratación que provoca el viento seco.",
         location: forecast.location.label,
-        validUntil: candidate === today ? "Hoy 23:59" : "Mañana 23:59",
+        validUntil: candidate === today 
+          ? (isEn ? "Today 23:59" : "Hoy 23:59") 
+          : (isEn ? "Tomorrow 23:59" : "Mañana 23:59"),
       })
     }
   }
@@ -284,13 +292,18 @@ export function evaluateAlerts(
         severity: candidate.tempMinC <= -2 ? "high" : "medium",
         title:
           candidate === today
-            ? "Riesgo de helada nocturna"
-            : "Helada prevista para mañana",
-        description: `Mínima estimada de ${Math.round(candidate.tempMinC)} °C ${fmtDay(candidate)} a la madrugada.`,
-        recommendation:
-          "Cubrí las plantas más vulnerables con manta o film transparente. Evitá regar al atardecer para que la raíz no quede encharcada y se congele.",
+            ? (isEn ? "Night frost risk" : "Riesgo de helada nocturna")
+            : (isEn ? "Frost forecast for tomorrow" : "Helada prevista para mañana"),
+        description: isEn
+          ? `Estimated minimum of ${Math.round(candidate.tempMinC)} °C ${fmtDay(candidate)} in the early morning.`
+          : `Mínima estimada de ${Math.round(candidate.tempMinC)} °C ${fmtDay(candidate)} a la madrugada.`,
+        recommendation: isEn
+          ? "Cover the most vulnerable plants with a blanket or clear film. Avoid watering at dusk so the roots don't stay waterlogged and freeze."
+          : "Cubrí las plantas más vulnerables con manta o film transparente. Evitá regar al atardecer para que la raíz no quede encharcada y se congele.",
         location: forecast.location.label,
-        validUntil: candidate === today ? "Mañana 08:00" : "Pasado 08:00",
+        validUntil: candidate === today 
+          ? (isEn ? "Tomorrow 08:00" : "Mañana 08:00") 
+          : (isEn ? "Day after 08:00" : "Pasado 08:00"),
       })
     }
   }
@@ -302,12 +315,17 @@ export function evaluateAlerts(
       alerts.push({
         type: "heatwave",
         severity: candidate.tempMaxC >= 40 ? "high" : "medium",
-        title: "Ola de calor",
-        description: `Máxima prevista de ${Math.round(candidate.tempMaxC)} °C ${fmtDay(candidate)}.`,
-        recommendation:
-          "Regá temprano por la mañana o al anochecer. Movés las plantas más delicadas lejos del sol directo del mediodía.",
+        title: isEn ? "Heatwave" : "Ola de calor",
+        description: isEn
+          ? `Estimated maximum of ${Math.round(candidate.tempMaxC)} °C ${fmtDay(candidate)}.`
+          : `Máxima prevista de ${Math.round(candidate.tempMaxC)} °C ${fmtDay(candidate)}.`,
+        recommendation: isEn
+          ? "Water early in the morning or at dusk. Move delicate plants away from direct noon sun."
+          : "Regá temprano por la mañana o al anochecer. Movés las plantas más delicadas lejos del sol directo del mediodía.",
         location: forecast.location.label,
-        validUntil: candidate === today ? "Hoy 22:00" : "Mañana 22:00",
+        validUntil: candidate === today 
+          ? (isEn ? "Today 22:00" : "Hoy 22:00") 
+          : (isEn ? "Tomorrow 22:00" : "Mañana 22:00"),
         precipitationTomorrow: precipTomorrow,
       })
     }
@@ -320,14 +338,19 @@ export function evaluateAlerts(
     )
     if (candidate) {
       alerts.push({
-        type: "zonda", // reusamos un tipo existente del WeatherAlert; el front se guía por title/severity
+        type: "zonda", 
         severity: "high",
-        title: "Posible granizada",
-        description: `Pronóstico de tormenta con granizo ${fmtDay(candidate)}.`,
-        recommendation:
-          "Llevá adentro lo que puedas, tapá las macetas exteriores con cajones o telas gruesas y atá tutores. El granizo destruye hojas grandes en minutos.",
+        title: isEn ? "Possible hail" : "Posible granizada",
+        description: isEn
+          ? `Storm with hail forecast ${fmtDay(candidate)}.`
+          : `Pronóstico de tormenta con granizo ${fmtDay(candidate)}.`,
+        recommendation: isEn
+          ? "Take in what you can, cover outdoor pots with boxes or thick cloths and tie stakes. Hail destroys large leaves in minutes."
+          : "Llevá adentro lo que puedas, tapá las macetas exteriores con cajones o telas gruesas y atá tutores. El granizo destruye hojas grandes en minutos.",
         location: forecast.location.label,
-        validUntil: candidate === today ? "Hoy 23:59" : "Mañana 23:59",
+        validUntil: candidate === today 
+          ? (isEn ? "Today 23:59" : "Hoy 23:59") 
+          : (isEn ? "Tomorrow 23:59" : "Mañana 23:59"),
       })
     }
   }
@@ -337,12 +360,15 @@ export function evaluateAlerts(
     alerts.push({
       type: "calm",
       severity: "low",
-      title: "Clima estable",
-      description: `Hoy ${Math.round(today.tempMinC)}–${Math.round(today.tempMaxC)} °C, humedad ${Math.round(today.humidityMin)} %.`,
-      recommendation:
-        "Día tranquilo para revisar el sustrato, rotar macetas y observar nuevas hojas.",
+      title: isEn ? "Stable weather" : "Clima estable",
+      description: isEn
+        ? `Today ${Math.round(today.tempMinC)}–${Math.round(today.tempMaxC)} °C, humidity ${Math.round(today.humidityMin)} %.`
+        : `Hoy ${Math.round(today.tempMinC)}–${Math.round(today.tempMaxC)} °C, humedad ${Math.round(today.humidityMin)} %.`,
+      recommendation: isEn
+        ? "Quiet day to check the substrate, rotate pots and observe new leaves."
+        : "Día tranquilo para revisar el sustrato, rotar macetas y observar nuevas hojas.",
       location: forecast.location.label,
-      validUntil: "Hoy 23:59",
+      validUntil: isEn ? "Today 23:59" : "Hoy 23:59",
       precipitationTomorrow: precipTomorrow,
     })
   }
@@ -372,7 +398,7 @@ export async function getMendozaWeatherAlert(
 ): Promise<WeatherAlert> {
   try {
     const forecast = await getForecast(city, (prefs as any).lat, (prefs as any).lng)
-    const alerts = evaluateAlerts(forecast, prefs, forecast.daily[1]?.precipitationMm || 0)
+    const alerts = evaluateAlerts(forecast, prefs, forecast.daily[1]?.precipitationMm || 0, (prefs as any).language || "es")
     return alerts[0]
   } catch (error) {
     console.error("[v0] Error obteniendo clima real, fallback a calmo:", error)
@@ -396,9 +422,9 @@ export async function getMendozaWeatherAlert(
  */
 export async function getWeatherSummary(
   city = "Mendoza, Argentina",
-  prefs: WeatherAlertPreferences & { lat?: number; lng?: number } = ALL_ALERTS_ON,
+  prefs: WeatherAlertPreferences & { lat?: number; lng?: number; language?: string } = ALL_ALERTS_ON,
 ): Promise<{ forecast: Forecast; alerts: WeatherAlert[] }> {
   const forecast = await getForecast(city, prefs.lat, prefs.lng)
-  const alerts = evaluateAlerts(forecast, prefs, forecast.daily[1]?.precipitationMm || 0)
+  const alerts = evaluateAlerts(forecast, prefs, forecast.daily[1]?.precipitationMm || 0, prefs.language || "es")
   return { forecast, alerts }
 }

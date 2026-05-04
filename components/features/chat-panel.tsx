@@ -278,7 +278,7 @@ export function ChatPanel({ initialPrompt }: { initialPrompt?: string }) {
           messages[messages.length - 1]?.role === "user" ? (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Spinner className="size-4" />
-              {language === "en" ? "Thinking..." : "Pensando..."}
+              {t("agent", "thinking") || (language === "en" ? "Thinking..." : "Pensando...")}
             </div>
           ) : null}
         </div>
@@ -302,10 +302,10 @@ export function ChatPanel({ initialPrompt }: { initialPrompt?: string }) {
               />
             </div>
             <p className="flex-1 text-xs leading-tight text-muted-foreground">
-              {language === "en" ? "Photo ready to send to agent." : "Foto lista para enviar al agente."}
+              {t("agent", "photo_ready") || (language === "en" ? "Photo ready to send to agent." : "Foto lista para enviar al agente.")}
               <br />
               <span className="text-foreground/70">
-                {language === "en" ? "Will use vision to diagnose." : "Va a usar visión para diagnosticar."}
+                {t("agent", "vision_desc") || (language === "en" ? "Will use vision to diagnose." : "Va a usar visión para diagnosticar.")}
               </span>
             </p>
             <Button
@@ -348,7 +348,7 @@ export function ChatPanel({ initialPrompt }: { initialPrompt?: string }) {
           <InputGroupInput
             placeholder={
               pendingImage
-                ? (language === "en" ? "Tell me what you see or leave blank..." : "Contale qué ves o dejá vacío...")
+                ? (t("agent", "input_placeholder_photo") || (language === "en" ? "Tell me what you see or leave blank..." : "Contale qué ves o dejá vacío..."))
                 : (t("agent", "placeholder") || "Escribí tu pregunta...")
             }
             value={input}
@@ -507,13 +507,14 @@ interface ProductsToolOutput {
 }
 
 function ToolBadge({ part }: { part: any }) {
+  const { t } = useLanguage()
   const toolName = part.type.replace(/^tool-/, "")
   const labels: Record<string, string> = {
-    getWeatherAlerts: "Consultando clima en vivo",
-    getWeatherForecast: "Pidiendo pronóstico de 3 días",
-    listUserPlants: "Revisando tu jardín",
-    checkWateringSchedule: "Calculando próximo riego",
-    searchProducts: "Buscando precios en Mercado Libre",
+    getWeatherAlerts: t("agent", "tool_weather") || "Consultando clima en vivo",
+    getWeatherForecast: t("agent", "tool_forecast") || "Pidiendo pronóstico de 3 días",
+    listUserPlants: t("agent", "tool_garden") || "Revisando tu jardín",
+    checkWateringSchedule: t("agent", "tool_watering") || "Calculando próximo riego",
+    searchProducts: t("agent", "tool_search") || "Buscando precios en Mercado Libre",
   }
   const label = labels[toolName] ?? toolName
   const done = part.state === "output-available"
@@ -526,7 +527,7 @@ function ToolBadge({ part }: { part: any }) {
         <Spinner className="size-3" />
       )}
       <span>{label}</span>
-      {done ? <span className="text-muted-foreground">· listo</span> : null}
+      {done ? <span className="text-muted-foreground">· {t("agent", "tool_done") || "listo"}</span> : null}
     </div>
   )
 }

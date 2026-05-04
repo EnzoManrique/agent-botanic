@@ -21,7 +21,11 @@
     "scan_new": "Scan new plant",
     "scan_desc": "Identify species with AI and add to your garden.",
     "where_are_plants": "Where are your plants",
-    "where_are_plants_desc": "Useful when there is a wind or hail alert."
+    "where_are_plants_desc": "Useful when there is a wind or hail alert.",
+    "agent_tip": "Agent Tip",
+    "talk_with_agent": "Talk to the agent",
+    "recommendation": "Recommendation",
+    "valid_until": "Valid until"
   },
   "profile": {
     "title": "Profile",
@@ -44,6 +48,7 @@
     "city": "City"
   },
   "agent": {
+    "eyebrow": "AI Agent",
     "title": "Agent",
     "placeholder": "Type your question...",
     "thinking": "Botanic is thinking...",
@@ -55,7 +60,16 @@
     "sugg_3": "Diagnose from photo",
     "sugg_4": "Search fertilizer",
     "sugg_5": "Is there an alert this week?",
-    "sugg_6": "Care tips"
+    "sugg_6": "Care tips",
+    "tool_weather": "Checking live weather",
+    "tool_forecast": "Requesting 3-day forecast",
+    "tool_garden": "Checking your garden",
+    "tool_watering": "Calculating next watering",
+    "tool_search": "Searching prices on Mercado Libre",
+    "photo_ready": "Photo ready to send to agent.",
+    "vision_desc": "Will use vision to diagnose.",
+    "input_placeholder_photo": "Tell me what you see or leave blank...",
+    "tool_done": "ready"
   },
   "scan": {
     "title": "Scan",
@@ -87,6 +101,22 @@
     "light_baja": "Low (shade / low light)",
     "today": "Today",
     "every_x_days": "every {x} d",
-    "in_x_days": "In {x} days"
+    "in_x_days": "In {x} days",
+    "action_regar": "Water",
+    "action_cambiar_agua": "Change water",
+    "action_renovar_solucion": "Renew solution",
+    "action_pulverizar": "Mist",
+    "idle_regar": "Not watered yet",
+    "idle_cambiar_agua": "Water not changed yet",
+    "idle_renovar_solucion": "Solution not renewed yet",
+    "idle_pulverizar": "Not misted yet",
+    "toca_regar": "Time to water today",
+    "toca_cambiar_agua": "Time to change water",
+    "toca_renovar_solucion": "Time to renew solution",
+    "toca_pulverizar": "Time to mist",
+    "atrasada_dia": "1 day overdue",
+    "atrasada_dias": "{x} days overdue",
+    "other_alerts": "Other active alerts",
+    "agent_suggests": "The agent suggests"
   }
 }

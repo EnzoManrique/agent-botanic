@@ -12,9 +12,9 @@ export function AgentView({ initialPrompt }: { initialPrompt?: string }) {
     <div className="flex flex-col mt-[25px]">
       <ScreenHeader
         icon={<Sparkles className="size-5" aria-hidden="true" />}
-        eyebrow="Agente IA · Mendoza"
+        eyebrow={t("agent", "eyebrow") || "Agente IA"}
         title={t("agent", "title")}
-        subtitle="Pregunta sobre clima, riegos y cuidados."
+        subtitle={t("agent", "subtitle")}
       />
       <ChatPanel initialPrompt={initialPrompt} />
     </div>

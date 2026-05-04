@@ -170,7 +170,7 @@ function ExtraAlertsList({ alerts }: { alerts: WeatherAlert[] }) {
   return (
     <section className="px-5">
       <p className="mb-2 text-xs font-semibold tracking-wide uppercase text-muted-foreground">
-        Otras alertas activas
+        {t("garden", "other_alerts")}
       </p>
       <ul className="flex flex-col gap-2">
         {alerts.map((a, i) => {
@@ -238,7 +238,7 @@ function ProactiveAdviceCard({ advice }: { advice: ProactiveAdvice }) {
           </span>
           <div className="flex-1">
             <p className="text-xs font-semibold tracking-wide uppercase text-muted-foreground">
-              {t("home", "agent_suggests") || "El agente sugiere"}
+              {t("garden", "agent_suggests")}
             </p>
             <p className="font-serif text-base leading-tight font-semibold text-balance">
               {advice.headline}
@@ -251,7 +251,7 @@ function ProactiveAdviceCard({ advice }: { advice: ProactiveAdvice }) {
           className="bg-card hover:bg-secondary/60 inline-flex items-center justify-center gap-2 rounded-2xl border-2 border-border px-4 py-2.5 text-sm font-semibold transition-colors"
         >
           <Sparkles className="size-4" aria-hidden="true" />
-          {t("home", "talk_with_agent") || "Hablarlo con el agente"}
+          {t("home", "talk_with_agent")}
         </Link>
       </article>
     </section>
@@ -285,23 +285,8 @@ function WaterRow({
 
   // Texto idle: el usuario no debería leer "Sin regar todavía" para una
   // planta que vive en un florero — eso confunde más de lo que ayuda.
-  const idleLabel =
-    plant.wateringMode === "water"
-      ? "Sin cambiar el agua todavía"
-      : plant.wateringMode === "hydroponic"
-        ? "Sin renovar solución todavía"
-        : plant.wateringMode === "mist"
-          ? "Sin pulverizar todavía"
-          : "Sin regar todavía"
-
-  const todayLabel =
-    plant.wateringMode === "water"
-      ? "Toca cambiar el agua"
-      : plant.wateringMode === "hydroponic"
-        ? "Toca renovar la solución"
-        : plant.wateringMode === "mist"
-          ? "Toca pulverizar"
-          : "Toca regar hoy"
+  const idleLabel = t("garden", `idle_${plant.wateringMode}`)
+  const todayLabel = t("garden", `toca_${plant.wateringMode}`)
 
   return (
     <li className="flex items-center gap-3 rounded-3xl border-2 border-border bg-card p-3 shadow-soft">
@@ -333,7 +318,7 @@ function WaterRow({
           {days === null
             ? idleLabel
             : overdueBy && overdueBy > 0
-              ? `Atrasada ${overdueBy} ${overdueBy === 1 ? "día" : "días"}`
+              ? (overdueBy === 1 ? t("garden", "atrasada_dia") : t("garden", "atrasada_dias", { x: overdueBy.toString() }))
               : todayLabel}
         </p>
       </div>
@@ -342,14 +327,14 @@ function WaterRow({
         onClick={onWater}
         disabled={isPending}
         className="rounded-2xl font-semibold"
-        aria-label={`${careMeta.actionVerb} a ${plant.alias}`}
+        aria-label={`${t("garden", `action_${plant.wateringMode}`)} a ${plant.alias}`}
       >
         {isPending ? (
           <Spinner className="size-4" />
         ) : (
           <CareIcon className="size-4" aria-hidden="true" />
         )}
-        {careMeta.actionVerb}
+        {t("garden", `action_${plant.wateringMode}`)}
       </Button>
     </li>
   )
@@ -418,7 +403,7 @@ function LocationSummary({ plants }: { plants: Plant[] }) {
                   <p className="font-semibold leading-tight">{t("garden", loc)}</p>
                   <span className="text-xs font-semibold tabular-nums text-muted-foreground">
                     {list.length}{" "}
-                    {list.length === 1 ? t("home", "plant") || "planta" : t("home", "plants") || "plantas"}
+                    {list.length === 1 ? t("home", "plant_count") : t("home", "plants_count")}
                   </span>
                 </div>
                 <p className="mt-0.5 text-sm leading-snug text-muted-foreground text-pretty">

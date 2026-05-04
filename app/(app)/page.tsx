@@ -34,6 +34,7 @@ export default async function Home() {
         ...settings.location.alerts,
         lat: settings.location.lat,
         lng: settings.location.lng,
+        language,
       },
     )
     alerts = summary.alerts

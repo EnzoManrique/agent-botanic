@@ -1,8 +1,11 @@
+"use client"
+
 import { Snowflake, Sun, Wind, Leaf, CloudHail, Sparkles, MessageSquare } from "lucide-react"
 import type { WeatherAlert } from "@/lib/types"
 import type { ProactiveAdvice } from "@/lib/proactive-advisor"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import { useLanguage } from "@/lib/i18n/context"
 
 const ICONS: Record<WeatherAlert["type"], React.ElementType> = {
   zonda: Wind,
@@ -24,6 +27,7 @@ interface WeatherBannerProps {
 }
 
 export function WeatherBanner({ alert, advice }: WeatherBannerProps) {
+  const { t } = useLanguage()
   const Icon = ICONS[alert.type]
   const isAlert = alert.severity !== "low"
   
@@ -71,7 +75,7 @@ export function WeatherBanner({ alert, advice }: WeatherBannerProps) {
         {advice && (
           <span className="flex items-center gap-1.5 rounded-full bg-primary/20 border border-primary/20 px-2.5 py-0.5 text-[10px] font-bold tracking-wider uppercase text-primary-foreground">
             <Sparkles className="size-3" />
-            Consejo del Agente
+            {t("home", "agent_tip")}
           </span>
         )}
       </div>
@@ -94,7 +98,7 @@ export function WeatherBanner({ alert, advice }: WeatherBannerProps) {
           >
             <a href={`/agente?prompt=${encodeURIComponent(advice.chatPrompt)}`}>
               <MessageSquare className="size-4" />
-              Hablarlo con el agente
+              {t("home", "talk_with_agent")}
             </a>
           </Button>
         </div>
@@ -104,14 +108,14 @@ export function WeatherBanner({ alert, advice }: WeatherBannerProps) {
             {alert.description}
           </p>
           <p className="text-sm leading-relaxed">
-            <span className="font-semibold text-xs uppercase tracking-tight opacity-70">Recomendación: </span>
+            <span className="font-semibold text-xs uppercase tracking-tight opacity-70">{t("home", "recommendation")}: </span>
             {alert.recommendation}
           </p>
         </div>
       )}
       
       <p className="mt-3 text-[10px] font-medium opacity-50 text-right">
-        Vigente hasta {alert.validUntil}
+        {t("home", "valid_until")} {alert.validUntil}
       </p>
     </section>
   )
