@@ -33,12 +33,13 @@ Asistente personal para el cuidado de plantas, pensado mobile-first y construido
 | --------------- | ---------------------------------------------------------------- |
 | Framework       | [Next.js 16](https://nextjs.org) (App Router, RSC, Server Actions) |
 | UI              | [React 19](https://react.dev), [Tailwind CSS v4](https://tailwindcss.com), [shadcn/ui](https://ui.shadcn.com), [Radix UI](https://www.radix-ui.com) |
-| IA              | [AI SDK v6](https://sdk.vercel.ai) con `@ai-sdk/google` (Gemini 2.0 Flash y 2.5 Flash) |
+| IA              | [Vercel AI Gateway](https://vercel.com/docs/ai/ai-gateway) con `gpt-4o-mini` (chat) y Gemini 2.0/2.5 Flash (visión) |
 | Base de datos   | [Neon Postgres](https://neon.tech) serverless                    |
-| Auth            | [Auth.js v5](https://authjs.dev) (NextAuth) con credenciales + bcrypt |
+| Auth            | [Auth.js v5](https://authjs.dev) (NextAuth) con Google OAuth + Credenciales |
+| i18n            | Localización completa (EN/ES) con Context API y detección por cookies |
+| PWA             | Manifest web, iconos nativos y prompts de instalación           |
 | Clima           | [Open-Meteo](https://open-meteo.com) — sin API key, gratis       |
 | Productos       | API pública de [Mercado Libre Argentina](https://api.mercadolibre.com) |
-| Notificaciones  | [Sonner](https://sonner.emilkowal.ski)                           |
 | Tipos           | TypeScript 5.7 + Zod para validación de runtime                  |
 
 ## Arquitectura
@@ -72,11 +73,10 @@ Asistente personal para el cuidado de plantas, pensado mobile-first y construido
 ### Decisiones de diseño
 
 - **No ORM** — las queries van directo con `@neondatabase/serverless` y SQL parametrizado. Más control, menos magia, mejor performance en serverless.
+- **Vercel AI Gateway** — centraliza el acceso a modelos, permitiendo usar GPT-4o-mini para el chat (evitando límites de cuota) y Gemini para la visión multimodal en un solo endpoint.
+- **Localización dinámica** — soporte completo para inglés y español en toda la interfaz, incluyendo metadatos de plantas y alertas climáticas, con persistencia en cookies.
+- **PWA Experience** — instalable como app nativa con manifiesto configurado, iconos de alta resolución y splash screens para iOS y Android.
 - **Server Actions sobre API routes** para mutaciones. Solo el chat usa Route Handler porque necesita streaming.
-- **Multi-modelo con fallback** — el escaneo de fotos prueba `gemini-2.5-flash` primero y cae a `gemini-2.0-flash` si está saturado. El chat usa solo `2.0-flash` (más estable bajo carga).
-- **Tools resilientes** — cada tool del agente está envuelta en try/catch y devuelve `{ error: true, message }` en vez de tirar excepción, así el modelo puede disculparse en lenguaje natural sin que muera el stream.
-- **Auto-retry transparente en el cliente** — si el modelo está saturado momentáneamente, el cliente reintenta una vez después de 2 segundos sin avisar al usuario. Solo se muestra toast si el retry también falla.
-- **Tipo `LucideIcon` y design tokens** — los íconos y colores se centralizan para mantener consistencia visual y poder cambiar el theme desde `globals.css`.
 
 ## Puesta en marcha
 
@@ -123,17 +123,20 @@ Abrí http://localhost:3000.
 # === Base de datos (Neon Postgres) ===
 DATABASE_URL=postgresql://user:pass@host/db?sslmode=require
 
-# === Modelo de IA (Google AI Studio) ===
-# Obtenerla gratis en https://aistudio.google.com/app/apikey
-# Free tier: ~1500 requests/día sin tarjeta de crédito
+# === IA Gateway (Vercel) ===
+# El ID del gateway configurado en el dashboard de Vercel
+AI_GATEWAY_ID=agent-botanic
+
+# === Modelo de IA (AI Gateway / Direct) ===
+# Si usás el gateway, necesitás el API Key de Vercel o la del proveedor
 GOOGLE_GENERATIVE_AI_API_KEY=AIzaSy...
+OPENAI_API_KEY=sk-...
 
 # === Auth.js ===
 AUTH_SECRET=             # generar con: openssl rand -base64 32
-AUTH_URL=http://localhost:3000   # solo en dev; en prod lo setea Vercel
-
-# === Opcionales ===
-NEXT_PUBLIC_VERCEL_URL=  # autoseteado en Vercel; útil para callbacks OAuth si se agregan
+AUTH_GOOGLE_ID=          # de Google Cloud Console
+AUTH_GOOGLE_SECRET=
+AUTH_URL=http://localhost:3000
 ```
 
 > **Aviso sobre AI Gateway de Vercel:** considerá AI Gateway si querés switching automático entre proveedores, pero requiere tarjeta de crédito incluso para los créditos gratis. Por eso por defecto usamos la API directa de Google AI Studio.
@@ -145,42 +148,60 @@ Cuatro tablas principales en Neon Postgres:
 ```sql
 -- Usuarios
 CREATE TABLE users (
-  id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id           SERIAL PRIMARY KEY,
   email        TEXT UNIQUE NOT NULL,
-  password     TEXT NOT NULL,            -- bcrypt hash
+  password     TEXT,               -- NULL si entra por Google
   name         TEXT,
+  provider     TEXT DEFAULT 'credentials', -- 'google' | 'credentials'
+  image_url    TEXT,
   created_at   TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Plantas registradas por cada usuario
 CREATE TABLE plants (
-  id                       UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id                       SERIAL PRIMARY KEY,
   user_email               TEXT NOT NULL REFERENCES users(email),
-  alias                    TEXT NOT NULL,
-  species                  TEXT,
+  nickname                 TEXT NOT NULL,
+  species                  TEXT NOT NULL,
   scientific_name          TEXT,
   watering_frequency_days  INTEGER NOT NULL,
-  location                 TEXT,             -- "Adentro" | "Afuera"
+  watering_mode            TEXT DEFAULT 'soil', -- 'soil'|'water'|'hydroponic'|'mist'
+  category                 TEXT NOT NULL,
+  location                 TEXT,               -- 'interior'|'cubierto'|'exterior'|'invernadero'
+  light_needs              TEXT DEFAULT 'media', -- 'alta'|'media'|'baja'
+  notes                    TEXT,
   image_url                TEXT,
-  created_at               TIMESTAMPTZ DEFAULT NOW()
+  created_at               TIMESTAMPTZ DEFAULT NOW(),
+  last_watered_at          TIMESTAMPTZ
 );
 
--- Registro histórico de cuidados (regar, fertilizar, podar...)
+-- Registro histórico de cuidados
 CREATE TABLE care_logs (
-  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  plant_id    UUID NOT NULL REFERENCES plants(id) ON DELETE CASCADE,
-  care_type   TEXT NOT NULL,         -- "water" | "fertilize" | "prune"...
+  id           SERIAL PRIMARY KEY,
+  user_email   TEXT NOT NULL REFERENCES users(email),
+  plant_id     INTEGER NOT NULL REFERENCES plants(id) ON DELETE CASCADE,
+  care_type    TEXT NOT NULL,         -- 'water' | 'fertilize' | 'prune'...
+  note         TEXT,
   performed_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Preferencias del agente y alertas climáticas
+-- Preferencias y perfil del usuario
 CREATE TABLE user_settings (
-  user_email      TEXT PRIMARY KEY REFERENCES users(email),
-  city            TEXT,
-  alert_zonda     BOOLEAN DEFAULT TRUE,
-  alert_frost     BOOLEAN DEFAULT TRUE,
-  alert_heat_wave BOOLEAN DEFAULT TRUE,
-  alert_hail      BOOLEAN DEFAULT TRUE
+  user_email              TEXT PRIMARY KEY REFERENCES users(email),
+  profile_name            TEXT,
+  profile_email           TEXT,
+  agent_personality       TEXT DEFAULT 'friendly', -- 'scientist'|'friendly'|'guru'
+  advice_frequency        TEXT DEFAULT 'proactive', -- 'proactive'|'manual'
+  city                    TEXT DEFAULT 'Mendoza, Argentina',
+  alert_zonda             BOOLEAN DEFAULT TRUE,
+  alert_frost             BOOLEAN DEFAULT TRUE,
+  alert_hail              BOOLEAN DEFAULT TRUE,
+  alert_heatwave          BOOLEAN DEFAULT TRUE,
+  alert_watering_reminder BOOLEAN DEFAULT TRUE,
+  temp_unit               TEXT DEFAULT 'celsius',
+  latitude                DOUBLE PRECISION,
+  longitude               DOUBLE PRECISION,
+  updated_at              TIMESTAMPTZ DEFAULT NOW()
 );
 ```
 
@@ -313,7 +334,7 @@ El proyecto está optimizado para Vercel:
 3. Agregá las variables `AUTH_SECRET` y `GOOGLE_GENERATIVE_AI_API_KEY` en Settings → Environment Variables.
 4. Hacé un push a `main` y Vercel deploya automáticamente.
 
-> Próximas mejoras planeadas: notificaciones push, modo offline con IndexedDB, integración con Apple Shortcuts, y soporte multilenguaje.
+> Próximas mejoras planeadas: notificaciones push con Web Push API, modo offline con IndexedDB para el jardín, integración profunda con Apple Shortcuts para riego por voz, y soporte para más idiomas.
 
 ## Licencia
 
