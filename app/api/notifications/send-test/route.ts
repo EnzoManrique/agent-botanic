@@ -6,7 +6,16 @@ import webpush from "web-push"
 // Configuración de Web Push
 const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || ""
 const privateKey = process.env.VAPID_PRIVATE_KEY || ""
-const subject = process.env.VAPID_SUBJECT || "mailto:enzo@example.com"
+let subject = process.env.VAPID_SUBJECT || "mailto:enzo@example.com"
+
+// VAPID subject requiere ser una URL válida o un enlace mailto:
+if (subject && !subject.startsWith("mailto:") && !subject.startsWith("http://") && !subject.startsWith("https://")) {
+  if (subject.includes("@")) {
+    subject = `mailto:${subject}`
+  } else {
+    subject = `https://${subject}`
+  }
+}
 
 if (publicKey && privateKey) {
   webpush.setVapidDetails(subject, publicKey, privateKey)
