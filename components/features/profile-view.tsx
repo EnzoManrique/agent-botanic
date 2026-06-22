@@ -16,6 +16,7 @@ import { MyProfileCard } from "./profile/my-profile-card"
 import { AgentSettingsCard } from "./profile/agent-settings-card"
 import { WeatherLocationCard } from "./profile/weather-location-card"
 import { LanguageSettingsCard } from "./profile/language-settings-card"
+import { NotificationsSettingsCard } from "./profile/notifications-settings-card"
 import { AccountActions } from "./profile/account-actions"
 import { useLanguage } from "@/lib/i18n/context"
 
@@ -120,6 +121,8 @@ export function ProfileView({
       />
 
       <LanguageSettingsCard />
+
+      <NotificationsSettingsCard />
 
       <WeatherLocationCard
         location={settings.location}

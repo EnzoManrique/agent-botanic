@@ -45,7 +45,11 @@
     "advice_desc": "Proactivo te avisa antes de heladas, riegos o vientos fuertes.",
     "weather_location_title": "Clima y ubicación",
     "weather_location_desc": "Personalizá las alertas locales para tu jardín.",
-    "city": "Ciudad"
+    "city": "Ciudad",
+    "notifications_title": "Notificaciones Push",
+    "notifications_desc": "Recibí alertas en tiempo real sobre heladas, vientos fuertes y recordatorios de riego.",
+    "notifications_enable": "Activar notificaciones en este dispositivo",
+    "notifications_send_test": "Enviar notificación de prueba"
   },
   "agent": {
     "eyebrow": "Agente IA",

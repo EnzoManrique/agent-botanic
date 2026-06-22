@@ -45,7 +45,11 @@
     "advice_desc": "Proactive notifies you before frosts, watering, or strong winds.",
     "weather_location_title": "Weather & Location",
     "weather_location_desc": "Customize local alerts for your garden.",
-    "city": "City"
+    "city": "City",
+    "notifications_title": "Push Notifications",
+    "notifications_desc": "Receive real-time alerts about frost, strong winds, and watering reminders.",
+    "notifications_enable": "Enable notifications on this device",
+    "notifications_send_test": "Send test notification"
   },
   "agent": {
     "eyebrow": "AI Agent",
