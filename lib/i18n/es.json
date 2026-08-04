@@ -49,7 +49,8 @@
     "notifications_title": "Notificaciones Push",
     "notifications_desc": "Recibí alertas en tiempo real sobre heladas, vientos fuertes y recordatorios de riego.",
     "notifications_enable": "Activar notificaciones en este dispositivo",
-    "notifications_send_test": "Enviar notificación de prueba"
+    "notifications_send_test": "Enviar notificación de prueba",
+    "notifications_ios_notice": "Para activar notificaciones en tu iPhone: tocá el botón de Compartir en Safari y seleccioná 'Agregar a pantalla de inicio'. Luego, abrí la app desde tu pantalla de inicio."
   },
   "agent": {
     "eyebrow": "Agente IA",

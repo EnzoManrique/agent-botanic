@@ -93,7 +93,7 @@ export function usePushNotifications() {
       const response = await fetch("/api/notifications/subscribe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ subscription: sub })
+        body: JSON.stringify({ subscription: sub.toJSON() })
       })
 
       if (!response.ok) {
